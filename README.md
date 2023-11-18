@@ -1,9 +1,6 @@
 # gus
 
 
-- [] Ìí¼Ó×Ô¶¨ÒåÓ¢ÎÄ×ÖÌå
+- [ ] æ·»åŠ è‡ªå®šä¹‰è‹±æ–‡å­—ä½“
 
-### À­È¡´úÂëÍ¬Ê±£¬À­È¡×ÓÄ£¿é´úÂë
-```
-git clone --recurse-submodules https://github.com/Hunlongyu/gus_gui.git
-```
+git config --global core.autocrlf true
