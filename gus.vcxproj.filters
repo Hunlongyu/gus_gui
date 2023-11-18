@@ -18,12 +18,6 @@
     <ClCompile Include="src\main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="includes\imgui\backends\imgui_impl_dx11.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="includes\imgui\backends\imgui_impl_win32.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="includes\imgui\imgui.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -45,14 +39,29 @@
     <ClCompile Include="includes\imgui\imgui_widgets.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="src\helper\helper.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\views\home\home.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\views\manage\manage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\views\profile\profile.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\views\settings\settings.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\windows\win.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\globals\globals.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="includes\imgui\backends\imgui_impl_dx11.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\imgui\backends\imgui_impl_win32.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="includes\imgui\imconfig.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -75,6 +84,27 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="includes\imgui\imstb_truetype.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\helper\helper.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\windows\win.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\globals\globals.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\views\home\home.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\views\manage\manage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\views\profile\profile.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\views\settings\settings.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
