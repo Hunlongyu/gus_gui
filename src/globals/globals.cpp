@@ -1,4 +1,4 @@
-#include "globals.h"
+﻿#include "globals.h"
 
 ID3D11Device* g_pd3dDevice = nullptr;
 ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;

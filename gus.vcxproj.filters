@@ -107,5 +107,8 @@
     <ClInclude Include="src\views\settings\settings.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="includes\std_image\stb_image.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

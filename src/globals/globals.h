@@ -1,4 +1,4 @@
-#ifndef GLOBALS_H
+ï»¿#ifndef GLOBALS_H
 #define GLOBALS_H
 #pragma once
 #include <d3d11.h>
@@ -11,13 +11,13 @@ extern UINT g_ResizeHeight;
 extern ID3D11RenderTargetView* g_mainRenderTargetView;
 extern HWND hwnd;
 
-// view ÊÓÍ¼ÏÔÊ¾¿ØÖÆ
+// view è§†å›¾æ˜¾ç¤ºæŽ§åˆ¶
 extern bool show_home;
 extern bool show_manage;
 extern bool show_profile;
 extern bool show_settings;
 
-// dev ÊÓÍ¼
+// dev è§†å›¾
 extern bool show_demo;
 extern bool show_hello;
 #endif

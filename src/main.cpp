@@ -60,6 +60,18 @@ int APIENTRY WinMain(HINSTANCE hCurrentInstance, HINSTANCE hPreviousInstance, LP
         {
             homeUI();
         }
+        if (show_manage)
+        {
+            //
+        }
+        if (show_profile)
+        {
+            // 
+        }
+        if (show_settings)
+        {
+            //
+        }
 
         if (show_demo)
         {
