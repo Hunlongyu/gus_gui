@@ -60,6 +60,12 @@
     <ClCompile Include="src\globals\globals.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="src\resource\resource.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="includes\sha256\sha256.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\imgui\imconfig.h">
@@ -108,6 +114,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="includes\std_image\stb_image.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\resource\resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\sha256\sha256.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\httplib\httplib.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

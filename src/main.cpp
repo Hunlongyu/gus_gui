@@ -1,7 +1,10 @@
+#include <iostream>
+
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include "globals/globals.h"
 #include "helper/helper.h"
+#include "resource/resource.h"
 #include "views/home/home.h"
 #include "windows/win.h"
 
@@ -20,7 +23,22 @@ int APIENTRY WinMain(HINSTANCE hCurrentInstance, HINSTANCE hPreviousInstance, LP
     ::ShowWindow(hwnd, SW_SHOWDEFAULT);
     ::UpdateWindow(hwnd);
 
+    initResource();
     homeInit(hwnd);
+
+    {
+        /*char email[] = "MyEmailAddress@example.com ";
+        auto lala = GetEmailSha(email);
+        ImGui::Text(lala);
+        delete[] lala;*/
+    }
+
+    {
+        /*const char* sha = "205e460b479e2e5b48aec07710c08d50";
+        char* imgUrl = GetImageUrl(sha);
+        std::cout << "Image URL: " << imgUrl << "\n";
+        delete[] imgUrl;*/
+    }
 
     // Main loop
     bool done = false;
@@ -81,7 +99,7 @@ int APIENTRY WinMain(HINSTANCE hCurrentInstance, HINSTANCE hPreviousInstance, LP
         // Rendering
         ImGui::Render();
         g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
-        constexpr float clearColor[4] = {0.00f, 0.00f, 0.00f, 1.00f}; // RGBA
+        constexpr float clearColor[4] = { 0.00f, 0.00f, 0.00f, 1.00f }; // RGBA
         g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clearColor);
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         g_pSwapChain->Present(1, 0); // Present with vsync

@@ -4,6 +4,7 @@
 #include "imgui_impl_win32.h"
 #include "../../globals/globals.h"
 #include "../../helper/helper.h"
+#include "../../resource/resource.h"
 
 void homeInit(const HWND hwnd)
 {
@@ -39,40 +40,63 @@ void homeUI()
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(380, 440), ImGuiCond_Always);
 
-    ID3D11ShaderResourceView* menu = nullptr;
-    const bool menu_ret = LoadTextureFromFile("E:/cpp/gus_gui/assets/images/menu.png", &menu);
-    IM_ASSERT(menu_ret);
-
-    ID3D11ShaderResourceView* setting = nullptr;
-    const bool setting_ret = LoadTextureFromFile("E:/cpp/gus_gui/assets/images/setting.png", &setting);
-    IM_ASSERT(setting_ret);
-
-
     ImGui::Begin("Home view", &show_home, win_flags);
     const ImVec2 windowSize = ImGui::GetWindowSize();
+    {
+        ImGui::Image(img_menu, ImVec2(24, 24));
+        ImGui::SetItemTooltip("Menu");
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+        }
+        if (ImGui::IsItemClicked())
+        {
+            show_manage = true;
+        }
+        const ImVec2 avail = ImGui::GetContentRegionAvail();
+        ImGui::SameLine(avail.x - 24);
+        ImGui::Image(img_setting, ImVec2(24, 24));
+        ImGui::SetItemTooltip("Settings");
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+        }
+        if (ImGui::IsItemClicked())
+        {
+            show_settings = true;
+        }
+    }
 
-    ImGui::Image(menu, ImVec2(24, 24));
-    ImGui::SetItemTooltip("Menu");
-    if (ImGui::IsItemHovered())
     {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+        const char* items[] = { "AAAA", "BBBB", "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ", "KKKK", "LLLLLLL", "MMMM", "OOOOOOO" };
+        static int item_current_idx = 0;
+        ImGui::Text("Full-width:");
+        if (ImGui::BeginListBox("##listbox 2", ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing())))
+        {
+            for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+            {
+                const bool is_selected = (item_current_idx == n);
+                if (ImGui::Selectable(items[n], is_selected))
+                {
+                    item_current_idx = n;
+                }
+
+                if (is_selected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndListBox();
+        }
     }
-    if (ImGui::IsItemClicked())
-    {
-        show_manage = true;
-    }
-    const ImVec2 avail = ImGui::GetContentRegionAvail();
-    ImGui::SameLine(avail.x - 24);
-    ImGui::Image(setting, ImVec2(24, 24));
-    ImGui::SetItemTooltip("Settings");
-    if (ImGui::IsItemHovered())
-    {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-    }
-    if (ImGui::IsItemClicked())
-    {
-        show_settings = true;
-    }
+
+    // 获取头像
+    /*{
+        char email[] = "MyEmailAddress@example.com ";
+        auto lala = GetEmailSha(email);
+        ImGui::Text(lala);
+        delete[] lala;
+    }*/
 
     ImGui::Text("This is home view");
 
