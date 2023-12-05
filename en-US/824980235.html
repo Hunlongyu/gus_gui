@@ -1,0 +1,166 @@
+﻿<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head xmlns:forms="http://www.schema.de/2010/ST4/Layout/MarkupLanguage/Forms"><meta http-equiv="Content-Script-Type" content="text/javascript" /><meta http-equiv="Content-Style-Type" content="text/css" /><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="generator" content="SCHEMA ST4, Bootstrap 2016 v1" /><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" /><meta name="msapplication-config" content="none" /><link rel="icon" type="image/x-icon" href="../assets/ico/bruker.ico" /><link rel="stylesheet" href="../assets/css/base/01-bootstrap.min.css" /><link rel="stylesheet" href="../assets/css/base/02-jquery-tree.css" /><link rel="stylesheet" href="../assets/css/base/03-bootstrap-schema.css" /><link rel="stylesheet" href="../assets/css/base/04-jquery.mcustomscrollbar.min.css" /><link rel="stylesheet" href="../assets/css/base/05-jquery.mmenu.oncanvas.css" /><link rel="stylesheet" href="../assets/css/base/06-jquery.mmenu.schema.css" /><link rel="stylesheet" href="../assets/css/formats.css" /><title>getprosol</title></head><body id="824980235" lang="en-US" xmlns:forms="http://www.schema.de/2010/ST4/Layout/MarkupLanguage/Forms" data-node-id="824980235" class="" data-culture="en-US"><div class="off-canvas"><div id="off-canvas-menu" role="complementary"></div><div id="pushobj"><div class="scroll-container content-container" id="content-container"><div class="container" role="main"><ol class="breadcrumb hidden-xs"><li><a style="color:#3195CA;" href="index.html"></a></li><li><a style="color:#3195CA;" href="824933259.html">Parameter Handling Commands</a></li><li>getprosol</li></ol><h1 class="heading" style="color:black;">getprosol</h1><div class="metalist"></div><h2 class="subheading">NAME</h2><p><strong>getprosol</strong> - <span class=".index-entry" id="ID0EAFFM"></span>Get <span class=".index-entry" id="ID0EDFFM"></span>probe and <span class=".index-entry" id="ID0EHFFM"></span>solvent dependent parameters</p><h2 class="subheading">DESCRIPTION</h2><p>The command <strong>getprosol</strong> reads the probe and solvent dependent parameters (the <span class=".index-entry" id="ID0ETFFM"></span>prosol parameters) and copies them to the corresponding acquisition parameters. Entering <strong>getprosol</strong> on the command line is equivalent to clicking the <strong>AcquPars</strong> tab and then clicking the <img style="vertical-align: baseline;" src="../Images/png/9007199496160395__en-US__Web.png" /> button. The <span class=".index-entry" id="ID0E4FFM"></span>relations between the prosol and acquisition parameters are shown in table <a style="color:#3195CA;" href="824980235.html#824993163">Default relations between prosol and acquisition parameters</a>. These are the default <span class=".index-entry" id="ID0EGGFM"></span>relations which apply to most standard high resolution experiments. <span class=".index-entry" id="ID0EKGFM"></span>Protein, <span class=".index-entry" id="ID0ENGFM"></span>DNA/RNA,<span class=".index-entry" id="ID0EQGFM"></span>LC-NMR and several other types of experiments require different relations which are defined in the files, <em>triple</em>, <em>triple_na</em>, <em>lcnmr</em>, etc., respectively (see INPUT FILES). To use relations other than default, the so called <span class=".index-entry" id="ID0EZGFM"></span>relations file must be specified in the pulse program. You can do that by editing the pulse program (with <strong>edpul</strong> or <strong>edcpul</strong>) and adding the line:</p><p><code>  prosol relations=&lt;filename&gt;</code> </p><p>before the actual pulse sequence. To look at an example, you can enter <strong>edpul</strong> <strong>lc2</strong> or <strong>edpul</strong> <strong>zgesgp</strong>.</p><div class="safety safety-type-note safety-severity-note"><div class="safety-header">NOTE</div><div class="safety-body"><div class="row"><div class="col-sm-2 safety-symbol"><img src="../safety/note_NoteIcon.png" /></div><div class="col-sm-10"><p class="safety-consequence">Note that the file <em>default</em>, for default relations can, but does not need to be specified in the pulse program.</p></div></div></div><div class="safety-footer"></div></div><div class="textmodule" id="824993163"><div class="metalist"></div><table class="table tabletype-header table-scaled"><caption>Default relations between prosol and acquisition parameters</caption><colgroup><col style="width: 6.99cm;"></col><col style="width: 3.18cm;"></col><col style="width: 1.98cm;"></col></colgroup><thead><tr><th>
+<p class="text-left">Description</p></th><th>
+<p class="text-left"><span class=".index-entry" id="ID0EXJFM"></span>edprosol</p></th><th>
+<p class="text-left"><span class=".index-entry" id="ID0E6JFM"></span>eda</p></th></tr></thead><tbody><tr><td>
+<p class="text-left">F1 90° <span class=".index-entry" id="ID0EMKFM"></span>hard <span class=".index-entry" id="ID0EPKFM"></span>pulse length </p>
+</td><td>
+<p class="text-left">P90[F1]</p>
+</td><td>
+<p class="text-left">P[0], P[1]</p>
+</td></tr><tr><td>
+<p class="text-left">F1 180° hard pulse length </p>
+</td><td>
+<p class="text-left">P90[F1]*2</p>
+</td><td>
+<p class="text-left">P[2]</p>
+</td></tr><tr><td>
+<p class="text-left">F2 90 ° hard pulse length </p>
+</td><td>
+<p class="text-left">P90[F2]</p>
+</td><td>
+<p class="text-left">P[3]</p>
+</td></tr><tr><td>
+<p class="text-left">F2 180° hard <span class=".index-entry" id="ID0EQMFM"></span>pulse length </p>
+</td><td>
+<p class="text-left">P90[F2]*2</p>
+</td><td>
+<p class="text-left">P[4]</p>
+</td></tr><tr><td>
+<p class="text-left">F1 <span class=".index-entry" id="ID0EJNFM"></span>Tocsy spin lock 60° pulse length </p>
+</td><td>
+<p class="text-left">PTOC[F1]*0.66</p>
+</td><td>
+<p class="text-left">P[5]</p>
+</td></tr><tr><td>
+<p class="text-left">F1 Tocsy spin lock 90° pulse length</p>
+</td><td>
+<p class="text-left">PTOC[F1]</p>
+</td><td>
+<p class="text-left">P[6]</p>
+</td></tr><tr><td>
+<p class="text-left">F1 Tocsy spin lock 180° pulse length</p>
+</td><td>
+<p class="text-left">PTOC[F1]*2</p>
+</td><td>
+<p class="text-left">P[7]</p>
+</td></tr><tr><td>
+<p class="text-left">F1 <span class=".index-entry" id="ID0EJPFM"></span>Roesy spin lock pulse length</p>
+</td><td>
+<p class="text-left">PROE[F1]</p>
+</td><td>
+<p class="text-left">P[15]</p>
+</td></tr><tr><td>
+<p class="text-left"><span class=".index-entry" id="ID0EAQFM"></span>Gradient 1 <span class=".index-entry" id="ID0EEQFM"></span>pulse length </p>
+</td><td>
+<p class="text-left">P_grad1</p>
+</td><td>
+<p class="text-left">P[16]</p>
+</td></tr><tr><td>
+<p class="text-left">F1 Tocsy trim pulse length</p>
+</td><td>
+<p class="text-left">P_mlev</p>
+</td><td>
+<p class="text-left">P[17]</p>
+</td></tr><tr><td>
+<p class="text-left"><span class=".index-entry" id="ID0EQRFM"></span>Gradient 2 <span class=".index-entry" id="ID0EURFM"></span>pulse length </p>
+</td><td>
+<p class="text-left">P_grad2</p>
+</td><td>
+<p class="text-left">P[19]</p>
+</td></tr><tr><td>
+<p class="text-left">F3 90° hard pulse length </p>
+</td><td>
+<p class="text-left">P90[F3]</p>
+</td><td>
+<p class="text-left">P[21]</p>
+</td></tr><tr><td>
+<p class="text-left">F3 90° hard pulse length </p>
+</td><td>
+<p class="text-left">P90[F3]*2</p>
+</td><td>
+<p class="text-left">P[22]</p>
+</td></tr><tr><td>
+<p class="text-left">F1 HSQC trim pulse length </p>
+</td><td>
+<p class="text-left">P_hsqc</p>
+</td><td>
+<p class="text-left">P[28]</p>
+</td></tr><tr><td>
+<p class="text-left">F2 Roesy spin lock pulse length</p>
+</td><td>
+<p class="text-left">PROE[F2]</p>
+</td><td>
+<p class="text-left">P[31]</p>
+</td></tr><tr><td>
+<p class="text-left">F1 90° hard pulse <span class=".index-entry" id="ID0E4UFM"></span>power level</p>
+</td><td>
+<p class="text-left">PL90[F1]</p>
+</td><td>
+<p class="text-left">PL[1]</p>
+</td></tr><tr><td>
+<p class="text-left">F2 90° hard pulse power level</p>
+</td><td>
+<p class="text-left">PL90[F2]</p>
+</td><td>
+<p class="text-left">PL[2]</p>
+</td></tr><tr><td>
+<p class="text-left">F3 90° hard pulse power level</p>
+</td><td>
+<p class="text-left">PL90[F3]</p>
+</td><td>
+<p class="text-left">PL[3]</p>
+</td></tr><tr><td>
+<p class="text-left">F1 Tocsy spin lock power level </p>
+</td><td>
+<p class="text-left">PLTOC[F1]</p>
+</td><td>
+<p class="text-left">PL[10]</p>
+</td></tr><tr><td>
+<p class="text-left">F1 Roesy spin lock power level </p>
+</td><td>
+<p class="text-left">PLROE[F1]</p>
+</td><td>
+<p class="text-left">PL[11]</p>
+</td></tr><tr><td>
+<p class="text-left">F2 <span class=".index-entry" id="ID0EGYFM"></span>CPD power level </p>
+</td><td>
+<p class="text-left">PLCPDP[F2]</p>
+</td><td>
+<p class="text-left">PL[12]</p>
+</td></tr><tr><td>
+<p class="text-left">F2 Second CPD (bilev) power level</p>
+</td><td>
+<p class="text-left">PLCPD2[F2]</p>
+</td><td>
+<p class="text-left">PL[13]</p>
+</td></tr><tr><td>
+<p class="text-left">F3 CPD power level </p>
+</td><td>
+<p class="text-left">PLCPDP[F3]</p>
+</td><td>
+<p class="text-left">PL[16]</p>
+</td></tr><tr><td>
+<p class="text-left">F2 <span class=".index-entry" id="ID0EH1FM"></span>Homodecoupling power level</p>
+</td><td>
+<p class="text-left">PLHD[F2]</p>
+</td><td>
+<p class="text-left">PL[24]</p>
+</td></tr><tr><td>
+<p class="text-left"><span class=".index-entry" id="ID0E61FM"></span>Gradient recovery delay</p>
+</td><td>
+<p class="text-left">D_grad</p>
+</td><td>
+<p class="text-left">D[16]</p>
+</td></tr><tr><td>
+<p class="text-left">F2 <span class=".index-entry" id="ID0EY2FM"></span>CPD pulse length</p>
+</td><td>
+<p class="text-left">PCPDP[F2]</p>
+</td><td>
+<p class="text-left">PCPD[2]</p>
+</td></tr><tr><td>
+<p class="text-left">F2 CPD <span class=".index-entry" id="ID0ER3FM"></span>pulse length</p>
+</td><td>
+<p class="text-left">PCPDP[F3]</p>
+</td><td>
+<p class="text-left">PCPD[3]</p>
+</td></tr></tbody></table></div><h2 class="subheading">Usage Of Getprosol With Command Line Options</h2><p>The command <strong>getprosol</strong> (get probe and solvent dependent parameters from the edprosol table) can be called with three options:</p><ul class="list"><li value="1">The nucleus.</li><li value="2">P90, the value for 90° hard pulse length.</li><li value="3">PL90, the value for 90°hard pulse power level.</li></ul><p>The existing prosol parameterset, set up by <strong>edprosol</strong>, is not modified.</p><p><strong>getprosol Nuc P90 PL90</strong> recalculates standard hard power levels with:</p><p>PLx = 20*log (Px/P90) and the standard soft power levels PLSH1 - PLSH16 by:</p><p>PLSHx = 20*log (integFac*Px/totRot * (P90/90.0) where integFac (=SHAPE_INTEGFAC) and totRot (SHAPE_TOTROT) are read from the shapes <em>&lt;TOPSPINHOME&gt;/exp/stan/nmr/lists/wave/PNSHx</em> </p><p>and </p><p><em>&lt;TOPSPINHOMME&gt;/exp/stan/nmr/lists/wave/Gaus1.100</em> (e.g.)</p><h2 class="subheading">INPUT AND OUTPUT PARAMETERS</h2><p>See table <a style="color:#3195CA;" href="824980235.html#824993163">Default relations between prosol and acquisition parameters</a>.</p><h2 class="subheading">INPUT FILES</h2><ul class="list"><li value="1">&lt;tshome&gt;/conf/instr/&lt;instrum&gt;/prosol/relations</li><ul class="list"><li value="1"><em>default</em> - relations file for most experiments</li><li value="2"><em>triple</em> - relations file for Protein experiments</li><li value="3"><em>triple_na</em> - relations file for DNA experiments</li><li value="4"><em>lcnmr</em> - relations file for LC-NMR</li><li value="5">etc. </li></ul><li value="2">&lt;tshome&gt;/conf/instr/&lt;instrum&gt;/prosol/&lt;probeID&gt;/&lt;solvent&gt;</li><ul class="list"><li value="1"><em>nucleus.channel.amplifier</em> - prosol parameters</li></ul></ul><h2 class="subheading">OUTPUT FILES</h2><ul class="list"><li value="1">&lt;dir&gt;/data/&lt;user&gt;/nmr/&lt;name&gt;/&lt;expno&gt;/</li><ul class="list"><li value="1"><em>acqu</em> - acquisition parameters</li><li value="2"><em>relations</em> - copy of the input relations file</li></ul></ul><h2 class="subheading">SEE ALSO</h2><p><a style="color:#3195CA;" href="824649611.html">edprosol</a>, <a style="color:#3195CA;" href="824959755.html">eda</a>, </p><p>setprosol</p><div class="image"></div></div><div class="container"><footer><p class="text-muted">@ Bruker Corporation 2023</p></footer></div></div><div class="schema-navbar" id="navbar" role="navigation"><button class="schema-navbar-toggle visible-sm visible-xs" id="sidebar-toggle"><span class="schema-glyph schema-glyph-menu"></span></button><a class="schema-navbar-brand" href="index.html"><img class="schema-navbar-logo" src="../assets/img/logo_white.svg" /></a><button class="btn btn-default dropdown-toggle schema-navbar-toggle mobile-hidden-xs mobile-hidden-sm" style="margin-top:20px;" id="language-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="schema-glyph schema-glyph-more_vert" style="top:0;"></span></button><ul class="dropdown-menu" id="language-dropdown"><li class="dropdown-header hidden-md hidden-lg"></li><li class="hidden-md hidden-lg"><a href="index.html">Home</a></li><li class="dropdown-header">Language</li><li class="langMenuItem checked" data-value="en-US"><a href="../en-US/824980235.html">us-english</a></li></ul><div id="navbar-search"><form class="schema-navbar-search hidden-xs pull-right" role="search" action="search.html"><input type="text" name="q" autocomplete="search2662718347" placeholder="Search" results="10" /></form></div><ul class="navbar-structure-pages hidden-sm hidden-xs "><li class="schema-home-text"><a href="index.html">Home</a></li></ul><button class="navbar-toggle schema-navbar-toggle visible-xs" data-toggle="collapse" data-target="#search-collapse"><span class="schema-glyph schema-glyph-search"></span></button><form class="collapse hidden-sm hidden-md hidden-lg" id="search-collapse" role="search" action="search.html"><input type="text" name="q" autocomplete="search2662718347" placeholder="Search" results="10" /></form></div></div></div><script type="text/javascript" charset="utf-8" src="js/treedata.json"></script><script src="../assets/js/00-jquery.min.js"></script><script src="../assets/js/01-bootstrap.min.js"></script><script src="../assets/js/02-modernizr.custom.js"></script><script src="../assets/js/03-jquery-tree.js"></script><script src="../assets/js/04-jquery.mmenu.oncanvas.min.js"></script><script src="../assets/js/05-jquery.mcustomscrollbar.min.js"></script><script src="../assets/js/06-jquery-scrollbars.min.js"></script><script src="../assets/js/18-schema-common-core.min.js"></script><script src="../assets/js/19-schema-common-search.js"></script><script src="../assets/js/20-bootstrap-schema.js"></script></body></html>
