@@ -2,7 +2,7 @@
 
 使用 MyGo Native UI 的 Windows 托盘工具。运行环境需要可在 PATH 中找到的 Git for Windows。已在 Git 2.56 上验证。
 
-从 [GitHub Releases](https://github.com/Hunlongyu/gus_gui/releases/latest) 下载 Windows x64 安装程序。在设置中可以查看更新日志，下载经签名校验的新版并重启。以前通过普通 `go build` 分发的版本需手动安装一次。
+正式发布的 Windows x64 安装程序可在 [GitHub Releases](https://github.com/Hunlongyu/gus_gui/releases) 下载。设置中可以查看更新日志，下载经签名校验的新版并重启。也可以按下方步骤从源码构建。
 
 ## 使用
 
@@ -30,6 +30,6 @@ go build -trimpath -ldflags "-H windowsgui" -o dist/gus.exe .
 
 ## 发布
 
-修改 `mygo.json` 的 `version`，在 `CHANGELOG.md` 添加对应的 `## x.y.z` 段落。提交并推送后，推送相同版本的 Git 标签，例如 `v1.1.1`。推送到 main 和 PR 会运行 Windows 测试与构建。稳定版标签会触发签名打包，在更新归档通过公钥验证后，将安装器、更新清单和发布说明一起发布到 GitHub Release。
+日常推送到 main 和 PR 运行 Windows 测试与构建。仅在明确决定发布时更新版本和日志、创建对应的稳定版标签。在 GitHub Actions 中手动运行 **Publish Windows release**，选择 main 并填写要发布的标签。工作流会核对标签与版本，通过测试和签名验证后发布安装包和更新日志。
 
 Actions 使用仓库密钥 `MYGO_UPDATER_PRIVATE_KEY`，客户端信任的公钥在 `mygo.json`。请保管原签名私钥用于后续版本。应用启动时检查更新，长时间驻留后再次打开也会检查；用户可以先阅读新版说明，再选择「安装并重启」。

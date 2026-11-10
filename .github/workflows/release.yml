@@ -1,24 +1,32 @@
 name: Publish Windows release
 on:
-  push:
-    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing stable version tag to publish (for example v1.2.3)'
+        required: true
+        type: string
 permissions:
   contents: write
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag }}
   cancel-in-progress: false
 jobs:
   release:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Verify release version
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           $version = (Get-Content -Raw mygo.json | ConvertFrom-Json).version
-          if ($version -notmatch '^\d+\.\d+\.\d+$' -or "v$version" -cne $env:GITHUB_REF_NAME) { throw 'Tag and stable version must match' }
+          if ($version -notmatch '^\d+\.\d+\.\d+$' -or "v$version" -cne $env:RELEASE_TAG) { throw 'Tag and stable version must match' }
       - run: go test -count=1 ./...
       - run: go vet ./...
       - name: Package the entry point used by older installations
