@@ -1,5 +1,17 @@
 # 更新日志
 
+## 1.2.3
+
+### 简体中文
+
+- 应用统一命名为 gus，Windows 主程序为 `gus.exe`。托盘提示、窗口标题、关于页和新安装程序使用同一名称。
+- 从旧版更新后会自动启动 gus，并继续使用已保存的账号和项目目录。
+
+### English
+
+- The app is now named gus. Its Windows executable is `gus.exe`, with matching tray, window, About and installer names.
+- Upgrading an existing installation relaunches gus and keeps saved accounts and project folders.
+
 ## 1.2.2
 
 ### 简体中文

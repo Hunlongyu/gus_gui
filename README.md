@@ -1,4 +1,4 @@
-# Git User Switch
+# gus
 
 使用 MyGo Native UI 的 Windows 托盘工具。运行环境需要可在 PATH 中找到的 Git for Windows。已在 Git 2.56 上验证。
 
@@ -8,7 +8,7 @@
 
 设置页可选择简体中文或 English，以及跟随系统、浅色或深色主题。偏好保存在当前用户的配置中。
 
-1. 运行 `GitUserSwitch.exe`，点击系统托盘图标打开面板。
+1. 运行 `gus.exe`，点击系统托盘图标打开面板。
 2. 点击人像图标添加账号，填写标签、提交姓名和邮箱。也可右键已有的 Git 身份，选择「保存当前身份为账号」。
 3. 点击文件夹加号，或将一个或多个目录从资源管理器拖到项目面板。拖放前可点击图钉置顶面板，方便切换到资源管理器。子目录会定位到仓库根目录，重复目录只保留一项。
 4. 右键顶部的全局身份或项目行，选择要使用的账号。项目行的「继承全局」会移除当前仓库配置文件中的姓名和邮箱覆盖。
@@ -23,7 +23,7 @@
 
 ```powershell
 go test ./...
-go build -trimpath -ldflags "-H windowsgui" -o dist/GitUserSwitch.exe .
+go build -trimpath -ldflags "-H windowsgui" -o dist/gus.exe .
 ```
 
 测试使用临时仓库和隔离的全局 Git 配置。

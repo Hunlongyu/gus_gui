@@ -1,9 +1,13 @@
 package main
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/json"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -54,5 +58,29 @@ func TestSignedReleaseArchive(t *testing.T) {
 	digest := sha256.Sum256(archive)
 	if len(archive) != m.Size || len(cfg.Updates.PublicKey) != ed25519.PublicKeySize || !ed25519.Verify(cfg.Updates.PublicKey, digest[:], m.Signature) {
 		t.Fatal("release archive verification failed")
+	}
+	// Older clients relaunch their original filename. Verify that both
+	// entry points are actually in the signed update, not just the installer.
+	stream, err := gzip.NewReader(bytes.NewReader(archive))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stream.Close()
+	files := tar.NewReader(stream)
+	required := map[string]bool{"gus.exe": true, "GitUserSwitch.exe": true}
+	for {
+		entry, err := files.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if entry.Typeflag == tar.TypeReg && entry.Size > 0 {
+			delete(required, entry.Name)
+		}
+	}
+	if len(required) > 0 {
+		t.Fatalf("missing release entry points: %v", required)
 	}
 }

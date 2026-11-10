@@ -21,6 +21,8 @@ jobs:
           if ($version -notmatch '^\d+\.\d+\.\d+$' -or "v$version" -cne $env:GITHUB_REF_NAME) { throw 'Tag and stable version must match' }
       - run: go test -count=1 ./...
       - run: go vet ./...
+      - name: Package the entry point used by older installations
+        run: go build -trimpath -ldflags "-s -w -H windowsgui" -o resources/windows-amd64/GitUserSwitch.exe ./cmd/legacy-launcher
       - name: Build installer and signed update
         env:
           MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}

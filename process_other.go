@@ -4,7 +4,8 @@ package main
 
 import "os/exec"
 
-func hideGitWindow(*exec.Cmd) {}
+func hideGitWindow(*exec.Cmd)   {}
+func migrateStartupPath() error { return nil }
 
 // Other platforms use MyGo's single-instance lock.
 type instanceGuard struct{}

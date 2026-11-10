@@ -7,6 +7,7 @@ import (
 	"image/png"
 	"log"
 	"net/mail"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 )
 
 const panelWidth, panelHeight = 480, 490
+const appName = "gus"
 const minPanelWidth, minPanelHeight = 440, 320
 
 type application struct {
@@ -417,7 +419,7 @@ func (p *application) show() {
 }
 func main() {
 	p := &application{}
-	mygo.App.SetName("Git User Switch")
+	mygo.App.SetName(appName)
 	guard, err := claimInstance()
 	if err != nil {
 		log.Fatal("single instance: ", err)
@@ -431,6 +433,16 @@ func main() {
 	}
 	// OnQuit runs before MyGo starts the replacement process after an update.
 	mygo.App.OnQuit(guard.close)
+	// Keep the saved window geometry of installations from before the rename.
+	if dir, err := os.UserConfigDir(); err == nil {
+		legacy := filepath.Join(dir, "Git User Switch")
+		if info, err := os.Stat(legacy); err == nil && info.IsDir() {
+			mygo.App.SetPath(mygo.PathUserData, legacy)
+		}
+	}
+	if err := migrateStartupPath(); err != nil {
+		log.Printf("migrate startup path: %v", err)
+	}
 	mygo.App.OnBeforeQuit(func(e *mygo.QuitEvent) {
 		if p.installingUpdate {
 			e.PreventDefault()
@@ -452,12 +464,12 @@ func main() {
 
 	mygo.App.WhenReady(func() {
 		var err error
-		p.tray, err = mygo.NewTray(mygo.TrayOptions{Icon: trayIcon(), ToolTip: "Git User Switch"})
+		p.tray, err = mygo.NewTray(mygo.TrayOptions{Icon: trayIcon(), ToolTip: appName})
 		if err != nil {
 			log.Fatal(err)
 		}
 		p.win = mygo.NewWindow(mygo.WindowOptions{
-			Title: "Git User Switch", Content: ui.View(p.view),
+			Title: appName, Content: ui.View(p.view),
 			Width: panelWidth, Height: panelHeight,
 			MinWidth: minPanelWidth, MinHeight: minPanelHeight, StateKey: "tray-panel",
 			Hidden: true, Frameless: true, SkipTaskbar: true,

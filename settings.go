@@ -85,7 +85,7 @@ func (p *application) appSettings(c *ui.Context) {
 		ui.Divider(c)
 		ui.Column(c).Padding(12, 8).Gap(6).Children(func() {
 			ui.Text(c, p.tr("关于")).FontSize(12).TextColor(t.TextMuted)
-			ui.Text(c, "Git User Switch").Bold().FontSize(16)
+			ui.Text(c, appName).Bold().FontSize(16)
 			ui.Text(c, p.tr("管理全局和项目的 Git 提交身份。")).FontSize(13).TextColor(t.TextMuted)
 		})
 	})

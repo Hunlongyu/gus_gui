@@ -1,10 +1,9 @@
 {
-  "name": "GitUserSwitch",
-  "slug": "git-user-switch",
+  "name": "gus",
+  "slug": "gus",
   "identifier": "io.github.hunlongyu.gus-gui",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "out": "build",
-  "windows": { "displayName": "Git User Switch" },
   "updates": {
     "github": "Hunlongyu/gus_gui",
     "publicKey": "A1+RsfFrCvIuzJl0IhF6zpcMKcdcKHmVoZb7+y7RnJA=",
