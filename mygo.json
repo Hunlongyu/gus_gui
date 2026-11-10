@@ -2,7 +2,7 @@
   "name": "GitUserSwitch",
   "slug": "git-user-switch",
   "identifier": "io.github.hunlongyu.gus-gui",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "out": "build",
   "windows": { "displayName": "Git User Switch" },
   "updates": {

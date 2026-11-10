@@ -1,5 +1,17 @@
 # 更新日志
 
+## 1.2.2
+
+### 简体中文
+
+- 拖动面板边缘或四角即可调整窗口大小。初始尺寸为 480 × 490，最小尺寸为 440 × 320，正常退出后会记住上次的大小。
+- 小窗口中的账号表单支持滚动，保存和取消按钮始终可见。
+
+### English
+
+- Resize the tray panel by dragging its edges or corners. It opens at 480 × 490 by default, has a minimum size of 440 × 320 and remembers its size after a normal exit.
+- Account fields scroll in smaller windows so Save and Cancel remain accessible.
+
 ## 1.2.1
 
 ### 简体中文

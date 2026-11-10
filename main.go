@@ -18,6 +18,7 @@ import (
 )
 
 const panelWidth, panelHeight = 480, 490
+const minPanelWidth, minPanelHeight = 440, 320
 
 type application struct {
 	preferences                                  preferences
@@ -327,15 +328,14 @@ func (p *application) accountForm(c *ui.Context) {
 		windowAction(c, ui.ButtonBase(c), backIcon, p.tr("返回账号管理"), p.tr("返回账号管理"), false).OnClick(func() { p.page = "accounts" })
 		ui.Text(c, title).Bold().FontSize(18)
 	})
-	ui.Column(c).Padding(4, 5).Gap(16).Children(func() {
+	ui.Scroll(c.Key("account-fields")).Grow(1).Padding(4, 5).Gap(16).Children(func() {
 		accountField(c, p.tr("账号标签"), p.tr("例如：工作"), &p.draft.Label)
 		accountField(c, p.tr("提交姓名"), "Lin Chen", &p.draft.Name)
 		accountField(c, p.tr("邮箱"), "lin@example.org", &p.draft.Email)
+		if p.formError != "" {
+			ui.Text(c, p.formError).TextColor(t.Danger).FontSize(13)
+		}
 	})
-	if p.formError != "" {
-		ui.Text(c, p.formError).TextColor(t.Danger).FontSize(13)
-	}
-	ui.Spacer(c)
 	ui.Row(c).Justify(ui.End).Gap(8).Padding(10, 0, 0).Border(1, t.Border).BorderWidth(1, 0, 0, 0).Children(func() {
 		ui.Button(c, p.tr("取消")).Padding(5, 14).OnClick(func() { p.page = "accounts" })
 		ui.PrimaryButton(c, p.tr("保存账号")).Padding(5, 14).OnClick(p.saveAccount)
@@ -456,7 +456,12 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		p.win = mygo.NewWindow(mygo.WindowOptions{Title: "Git User Switch", Content: ui.View(p.view), Width: panelWidth, Height: panelHeight, Hidden: true, Frameless: true, SkipTaskbar: true, DisableResize: true})
+		p.win = mygo.NewWindow(mygo.WindowOptions{
+			Title: "Git User Switch", Content: ui.View(p.view),
+			Width: panelWidth, Height: panelHeight,
+			MinWidth: minPanelWidth, MinHeight: minPanelHeight, StateKey: "tray-panel",
+			Hidden: true, Frameless: true, SkipTaskbar: true,
+		})
 		p.updateUI = p.win.Update
 		guard.watch(func() { p.updateUI(p.show) })
 		if mygo.Updater.Enabled() {
