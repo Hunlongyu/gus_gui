@@ -418,9 +418,19 @@ func (p *application) show() {
 func main() {
 	p := &application{}
 	mygo.App.SetName("Git User Switch")
+	guard, err := claimInstance()
+	if err != nil {
+		log.Fatal("single instance: ", err)
+	}
+	if guard == nil {
+		return
+	}
+	defer guard.close()
 	if !mygo.App.RequestSingleInstanceLock() {
 		return
 	}
+	// OnQuit runs before MyGo starts the replacement process after an update.
+	mygo.App.OnQuit(guard.close)
 	mygo.App.OnBeforeQuit(func(e *mygo.QuitEvent) {
 		if p.installingUpdate {
 			e.PreventDefault()
@@ -448,6 +458,7 @@ func main() {
 		}
 		p.win = mygo.NewWindow(mygo.WindowOptions{Title: "Git User Switch", Content: ui.View(p.view), Width: panelWidth, Height: panelHeight, Hidden: true, Frameless: true, SkipTaskbar: true, DisableResize: true})
 		p.updateUI = p.win.Update
+		guard.watch(func() { p.updateUI(p.show) })
 		if mygo.Updater.Enabled() {
 			p.checkUpdates()
 		}

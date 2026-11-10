@@ -1,5 +1,17 @@
 # 更新日志
 
+## 1.2.1
+
+### 简体中文
+
+- 同一 Windows 登录会话中，安装版和独立 EXE 共用一个托盘实例。再次启动会打开已有面板，并发启动也只保留一个进程。
+- 正常退出、进程异常结束和自动更新重启后均可重新启动。
+
+### English
+
+- The installer and standalone executable share one tray instance per Windows sign-in session. Launching again opens the existing panel, including when several copies start together.
+- The instance lock is released on exit, process termination and update relaunch.
+
 ## 1.2.0
 
 ### 简体中文
