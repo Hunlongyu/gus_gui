@@ -1,35 +1,64 @@
 # gus
 
-使用 MyGo Native UI 的 Windows 托盘工具。运行环境需要可在 PATH 中找到的 Git for Windows。已在 Git 2.56 上验证。
+gus 是一个 Windows 系统托盘工具，用于查看和切换 Git 提交时使用的姓名（`user.name`）和邮箱（`user.email`）。你可以把个人身份设为全局默认值，再给工作仓库单独指定公司身份。每次打开面板，gus 都会重新读取 Git 配置。
 
-正式发布的 Windows x64 安装程序可在 [GitHub Releases](https://github.com/Hunlongyu/gus_gui/releases) 下载。设置中可以查看更新日志，下载经签名校验的新版并重启。也可以按下方步骤从源码构建。
+<img src="assets/images/gus-panel.png" width="480" alt="gus 托盘面板示例：顶部显示全局身份，项目列表并排显示仓库名、提交姓名、邮箱和配置来源">
 
-## 使用
+## 获取与启动
 
-设置页可选择简体中文或 English，以及跟随系统、浅色或深色主题。偏好保存在当前用户的配置中。
+准备一台 Windows x64 电脑，安装 Git for Windows，并确认在 PowerShell 中运行 `git --version` 能看到版本号。项目已在 Git 2.56 上验证。
 
-1. 运行 `gus.exe`，点击系统托盘图标打开面板。
-2. 点击人像图标添加账号，填写标签、提交姓名和邮箱。也可右键已有的 Git 身份，选择「保存当前身份为账号」。
-3. 点击文件夹加号，或将一个或多个目录从资源管理器拖到项目面板。拖放前可点击图钉置顶面板，方便切换到资源管理器。子目录会定位到仓库根目录，重复目录只保留一项。
-4. 右键顶部的全局身份或项目行，选择要使用的账号。项目行的「继承全局」会移除当前仓库配置文件中的姓名和邮箱覆盖。
+- **开发构建**：登录 GitHub，打开最近一次成功的 **Windows build**，在 **Artifacts** 下载 `gus-windows-amd64-dev`，解压后运行 `gus.exe`。[查看构建](https://github.com/Hunlongyu/gus_gui/actions/workflows/build.yml)
+- **正式安装包**：手动发布后，可从 Releases 下载安装程序。安装版支持在设置中查看更新日志、校验更新签名并安装重启。[查看 Releases](https://github.com/Hunlongyu/gus_gui/releases)
 
-账号模板和目录清单保存在 `%APPDATA%\GitUserSwitch\state.json`。每次打开面板，应用重新从 Git 读取身份。编辑账号模板后，可以在目标项目上再次选择它来应用修改。
+启动后点击 Windows 通知区域里的 gus 图标打开面板。如果任务栏上找不到图标，展开「显示隐藏的图标」。再次运行 gus 会唤起已有面板。
 
-项目同时使用不同作用域的姓名和邮箱时显示「混合」。将指针停在仓库名上可查看两项配置各自的来源。链接工作树遵循 Git 的配置作用域：仓库本地配置可由多个工作树共享，已有的工作树专用身份写入对应的工作树配置。
+## 第一次切换身份
 
-## 构建与测试
+1. **保存账号**。点击人像图标 → **新增账号**，填写标签（如「个人」或「工作」）、提交姓名和邮箱。如果顶部已显示你的 Git 身份，可以直接右键它，选择 **保存当前身份为账号…**。
+2. **添加项目**。点击文件夹加号选择一个或多个仓库，或先点图钉置顶，再从资源管理器把目录拖入面板。选择仓库的子目录也可以，gus 会定位到根目录并去重。
+3. **应用身份**。右键顶部 **全局** 可以修改全局 Git 配置；右键某个项目行可以为该仓库选择账号。要撤销项目覆盖，右键该行选择 **继承全局**。在搜索框输入项目名即可筛选列表。
 
-项目根目录为 MyGo 原生版。仓库中的 Visual Studio 工程为早期 C++ 实现。
+例如，把「个人」设为全局身份，再右键 `atlas` 选择「工作」，此后在 `atlas` 中的新提交会使用工作邮箱。更改账号模板后，需要在目标项目上再次选择该账号才能应用修改。
+
+## 如何读项目列表
+
+| 身份来源 | 含义 |
+| --- | --- |
+| 继承 | 姓名和邮箱均来自全局 Git 配置。 |
+| 专用 | 两项均来自当前仓库的本地配置，或均来自工作树专用配置。 |
+| 混合 | 两项的配置来源不同。例如姓名继承全局，邮箱由仓库覆盖。 |
+| 未设置 | Git 配置中没有设置这两项。 |
+
+悬停仓库名可查看完整路径和每个字段的配置作用域。使用 `git worktree` 时，同一仓库的多个工作树可以共享仓库本地配置。要在命令行核对某个项目的实际值及来源，可在该项目目录运行：
 
 ```powershell
+git config --show-scope --show-origin --get user.name
+git config --show-scope --show-origin --get user.email
+```
+
+## 设置与数据
+
+齿轮菜单提供开机自启、简体中文 / English，以及跟随系统、浅色和深色三种外观。拖动面板边缘或四角可以调整大小，正常退出后会记住尺寸。
+
+账号模板、项目目录清单、语言和主题保存在 `%APPDATA%\GitUserSwitch\state.json`。实际提交身份由 Git 配置保存。右键项目选择 **移出目录列表** 只会移除 gus 中的记录。
+
+## 从源码构建
+
+当前托盘程序使用 Go 和 MyGo Native UI。工具链版本见 [go.mod](go.mod)，仓库中的 Visual Studio 工程为早期 C++ 实现。
+
+```powershell
+git clone https://github.com/Hunlongyu/gus_gui.git
+cd gus_gui
 go test ./...
 go build -trimpath -ldflags "-H windowsgui" -o dist/gus.exe .
+.\dist\gus.exe
 ```
 
 测试使用临时仓库和隔离的全局 Git 配置。
 
-## 发布
+## 发布与许可证
 
-日常推送到 main 和 PR 运行 Windows 测试与构建。仅在明确决定发布时更新版本和日志、创建对应的稳定版标签。在 GitHub Actions 中手动运行 **Publish Windows release**，选择 main 并填写要发布的标签。工作流会核对标签与版本，通过测试和签名验证后发布安装包和更新日志。
+日常推送到 `main` 和提交 PR 会触发 Windows 测试与构建。仅在明确决定发布时更新 [版本配置](mygo.json) 和 [更新日志](CHANGELOG.md)，创建对应的稳定版标签，再从 `main` 手动运行 **Publish Windows release** 并填写标签。工作流使用仓库密钥 `MYGO_UPDATER_PRIVATE_KEY` 签名，验签通过后发布安装包及更新清单。
 
-Actions 使用仓库密钥 `MYGO_UPDATER_PRIVATE_KEY`，客户端信任的公钥在 `mygo.json`。请保管原签名私钥用于后续版本。应用启动时检查更新，长时间驻留后再次打开也会检查；用户可以先阅读新版说明，再选择「安装并重启」。
+本项目采用 [MIT 许可证](LICENSE.txt)。
