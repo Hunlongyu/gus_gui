@@ -16,15 +16,24 @@ type identity struct {
 	Email string `json:"email"`
 }
 type savedData struct {
-	Version     int        `json:"version"`
-	Accounts    []identity `json:"accounts"`
-	Directories []string   `json:"directories"`
+	Preferences preferences `json:"preferences,omitempty"`
+	Version     int         `json:"version"`
+	Accounts    []identity  `json:"accounts"`
+	Directories []string    `json:"directories"`
 }
 
 func samePath(a, b string) bool {
 	a, b = filepath.Clean(a), filepath.Clean(b)
 	if runtime.GOOS == "windows" {
-		return strings.EqualFold(a, b)
+		if strings.EqualFold(a, b) {
+			return true
+		}
+		if strings.Contains(a, "~") || strings.Contains(b, "~") {
+			first, errA := os.Stat(a)
+			second, errB := os.Stat(b)
+			return errA == nil && errB == nil && os.SameFile(first, second)
+		}
+		return false
 	}
 	return a == b
 }

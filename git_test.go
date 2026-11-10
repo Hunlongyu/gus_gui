@@ -142,7 +142,11 @@ func TestWorktreeAndConditionalIncludes(t *testing.T) {
 	}
 	include := filepath.Join(dir, "work.inc")
 	runGit(t, dir, "config", "--file", include, "user.email", "included@example.org")
-	runGit(t, dir, "config", "--global", "includeIf.gitdir/i:"+filepath.ToSlash(repo)+"/.git.path", filepath.ToSlash(include))
+	root, err := repositoryRoot(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "config", "--global", "includeIf.gitdir/i:"+filepath.ToSlash(root)+"/.git.path", filepath.ToSlash(include))
 	if r := inspectProject(repo); r.current.Email != "included@example.org" {
 		t.Fatal(r)
 	}

@@ -20,6 +20,7 @@ import (
 const panelWidth, panelHeight = 480, 490
 
 type application struct {
+	preferences                                  preferences
 	updateUI                                     func(func())
 	win                                          *mygo.Window
 	tray                                         *mygo.Tray
@@ -35,6 +36,7 @@ type application struct {
 	loginEnabled                                 bool
 	loginError                                   string
 	updateStatus                                 string
+	updateDetail                                 string
 	checkingUpdate                               bool
 	lastUpdateCheck                              time.Time
 	availableUpdate                              *mygo.Update
@@ -60,7 +62,14 @@ func (p *application) view(c *ui.Context) {
 			p.win.Hide()
 		}
 	}
-	t := panelTheme(c.Theme())
+	base := c.Theme()
+	switch p.preferences.Appearance {
+	case "light":
+		base = ui.LightTheme()
+	case "dark":
+		base = ui.DarkTheme()
+	}
+	t := panelTheme(base)
 	c.SetTheme(&t)
 	ui.Column(c).Fill().Padding(4).Background(t.Background).Children(func() {
 		panel := ui.Column(c).Grow(1).Radius(8).Background(t.Surface).Border(1, t.Border)
@@ -91,7 +100,7 @@ func (p *application) view(c *ui.Context) {
 					p.accountForm(c)
 				default:
 					if p.availableUpdate != nil {
-						ui.Button(c, "查看更新 · "+p.availableUpdate.Version).OnClick(func() { p.page = "settings" })
+						ui.Button(c, p.tr("查看更新 · ")+p.availableUpdate.Version).OnClick(func() { p.page = "settings" })
 					}
 					visible := p.projects
 					count := strconv.Itoa(len(p.projects))
@@ -105,29 +114,29 @@ func (p *application) view(c *ui.Context) {
 						count = strconv.Itoa(len(visible)) + " / " + count
 					}
 					ui.Row(c).Gap(5).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, "项目").Bold().FontSize(16)
+						ui.Text(c, p.tr("项目")).Bold().FontSize(16)
 						ui.Text(c, count).Grow(1).FontSize(13).TextColor(t.TextMuted)
-						ui.SearchField(c.Key("project-search"), &p.projectQuery).Width(168).Height(26).Label("搜索项目名").Placeholder("搜索项目名")
-						withIcon(c, ui.Button(c, ""), accountIcon, "账号管理", "账号管理").OnClick(func() { p.page = "accounts" })
-						withIcon(c, ui.Button(c, ""), settingsIcon, "设置", "应用设置").OnClick(func() { p.page = "settings" })
-						withIcon(c, ui.Button(c, ""), addDirectoryIcon, "添加目录", "添加项目目录").Disabled(p.busy).OnClick(p.pickDirectories)
+						ui.SearchField(c.Key("project-search"), &p.projectQuery).Width(168).Height(26).Label(p.tr("搜索项目名")).Placeholder(p.tr("搜索项目名"))
+						withIcon(c, ui.Button(c, ""), accountIcon, p.tr("账号管理"), p.tr("账号管理")).OnClick(func() { p.page = "accounts" })
+						withIcon(c, ui.Button(c, ""), settingsIcon, p.tr("设置"), p.tr("应用设置")).OnClick(func() { p.page = "settings" })
+						withIcon(c, ui.Button(c, ""), addDirectoryIcon, p.tr("添加目录"), p.tr("添加项目目录")).Disabled(p.busy).OnClick(p.pickDirectories)
 					})
 					ui.Row(c).Padding(5, 12, 5, 8).Gap(10).Background(t.Background).Radius(4).Children(func() {
-						ui.Text(c, "仓库").Width(95).FontSize(12).TextColor(t.TextMuted)
-						ui.Text(c, "提交姓名").Width(64).FontSize(12).TextColor(t.TextMuted)
-						ui.Text(c, "邮箱").Grow(1).FontSize(12).TextColor(t.TextMuted)
-						ui.Text(c, "身份来源").Width(65).FontSize(12).TextAlign(ui.Center).TextColor(t.TextMuted)
+						ui.Text(c, p.tr("仓库")).Width(95).FontSize(12).TextColor(t.TextMuted)
+						ui.Text(c, p.tr("提交姓名")).Width(64).FontSize(12).TextColor(t.TextMuted)
+						ui.Text(c, p.tr("邮箱")).Grow(1).FontSize(12).TextColor(t.TextMuted)
+						ui.Text(c, p.tr("身份来源")).Width(65).FontSize(12).TextAlign(ui.Center).TextColor(t.TextMuted)
 					})
 					if len(p.projects) == 0 {
-						ui.Text(c, "拖入 Git 项目目录，或点击右上角添加").TextColor(t.TextMuted).Padding(12, 8)
+						ui.Text(c, p.tr("拖入 Git 项目目录，或点击右上角添加")).TextColor(t.TextMuted).Padding(12, 8)
 					} else if len(visible) == 0 {
-						ui.Text(c, "没有匹配的项目").TextColor(t.TextMuted).Padding(12, 8)
+						ui.Text(c, p.tr("没有匹配的项目")).TextColor(t.TextMuted).Padding(12, 8)
 					}
 					ui.Scroll(c.Key("projects")).Grow(1).Children(func() {
 						for _, r := range visible {
-							a, source := r.current, r.current.source()
+							a, source := r.current, p.tr(r.current.source())
 							if r.problem != "" {
-								source = "不可用"
+								source = p.tr("不可用")
 							}
 							row := ui.Row(c.Key(r.path)).Height(32).Shrink(0).Padding(0, 12, 0, 8).Gap(10).AlignItems(ui.Center)
 							row.Border(1, t.Surface.Mix(t.Text, 0.08)).BorderWidth(0, 0, 1, 0)
@@ -135,9 +144,9 @@ func (p *application) view(c *ui.Context) {
 								row.Background(t.SurfaceHover)
 							}
 							row.Focusable().ContextMenu(p.identityMenu(r.path, r.current, r.problem == "")).Children(func() {
-								ui.Text(c, filepath.Base(r.path)).Width(95).MaxLines(1).Tooltip(r.description()).Bold()
-								ui.Text(c, displayValue(a.Name)).Width(64).MaxLines(1).Tooltip(a.Name)
-								ui.Text(c, displayValue(a.Email)).Grow(1).MinWidth(0).MaxLines(1).FontSize(13).TextColor(t.TextMuted).Tooltip(a.Email)
+								ui.Text(c, filepath.Base(r.path)).Width(95).MaxLines(1).Tooltip(p.description(r)).Bold()
+								ui.Text(c, p.displayValue(a.Name)).Width(64).MaxLines(1).Tooltip(a.Name)
+								ui.Text(c, p.displayValue(a.Email)).Grow(1).MinWidth(0).MaxLines(1).FontSize(13).TextColor(t.TextMuted).Tooltip(a.Email)
 								ui.Row(c).Width(65).Justify(ui.Center).Children(func() {
 									ink := ui.RGB(41, 108, 77)
 									if repoScope(a.NameScope) || repoScope(a.EmailScope) {
@@ -166,22 +175,22 @@ func (p *application) toolbar(c *ui.Context) {
 		ui.Row(c.Key("global")).Focusable().Grow(1).MinWidth(0).Gap(10).AlignItems(ui.Center).ContextMenu(p.identityMenu("", p.global, true)).Children(func() {
 			ui.Row(c).Shrink(0).Padding(6, 8).Gap(5).Radius(6).Border(1, t.Border).AlignItems(ui.Center).Children(func() {
 				ui.Icon(c, globeIcon).Size(16, 16)
-				ui.Text(c, "全局").FontSize(13)
+				ui.Text(c, p.tr("全局")).FontSize(13)
 			})
-			ui.Text(c, displayValue(a.Name)).Bold().FontSize(15).MaxWidth(112).Shrink(0).MaxLines(1).Ellipsis("…").Tooltip(a.Name)
-			ui.Text(c, displayValue(a.Email)).Grow(1).MinWidth(0).FontSize(13).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…").Tooltip(a.Email)
+			ui.Text(c, p.displayValue(a.Name)).Bold().FontSize(15).MaxWidth(112).Shrink(0).MaxLines(1).Ellipsis("…").Tooltip(a.Name)
+			ui.Text(c, p.displayValue(a.Email)).Grow(1).MinWidth(0).FontSize(13).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…").Tooltip(a.Email)
 		})
 		ui.Row(c).Shrink(0).Padding(2).Gap(1).Radius(7).Background(t.Background).Children(func() {
-			hint := "置顶面板"
+			hint := p.tr("置顶面板")
 			if p.pinned {
-				hint = "取消置顶"
+				hint = p.tr("取消置顶")
 			}
 			pin := ui.ToggleBase(c, &p.pinned)
-			if windowAction(c, pin, pinIcon, "置顶", hint, p.pinned).Changed() {
+			if windowAction(c, pin, pinIcon, p.tr("置顶"), hint, p.pinned).Changed() {
 				p.win.SetAlwaysOnTop(p.pinned)
 			}
-			windowAction(c, ui.ButtonBase(c), minimizeIcon, "最小化", "最小化到托盘", false).OnClick(func() { p.win.Hide() })
-			windowAction(c, ui.ButtonBase(c), closeIcon, "关闭", "关闭并退出", false).OnClick(mygo.App.Quit)
+			windowAction(c, ui.ButtonBase(c), minimizeIcon, p.tr("最小化"), p.tr("最小化到托盘"), false).OnClick(func() { p.win.Hide() })
+			windowAction(c, ui.ButtonBase(c), closeIcon, p.tr("关闭"), p.tr("关闭并退出"), false).OnClick(mygo.App.Quit)
 		})
 	})
 }
@@ -191,7 +200,7 @@ func (p *application) identityMenu(path string, current gitIdentity, available b
 		disabled := p.busy || !available
 		local := repoScope(current.NameScope) || repoScope(current.EmailScope)
 		if path != "" {
-			if m.Item("继承全局").Radio(!local).Disabled(disabled || !local).Chosen() {
+			if m.Item(p.tr("继承全局")).Radio(!local).Disabled(disabled || !local).Chosen() {
 				p.applyIdentity(path, nil)
 			}
 			m.Separator()
@@ -203,16 +212,16 @@ func (p *application) identityMenu(path string, current gitIdentity, available b
 		}
 		if available && current.Name != "" && current.Email != "" && !slices.ContainsFunc(p.accounts, current.matches) {
 			m.Separator()
-			if m.Item("保存当前身份为账号…").Chosen() {
+			if m.Item(p.tr("保存当前身份为账号…")).Chosen() {
 				p.beginAccount(-1)
 				p.draft.Name, p.draft.Email = current.Name, current.Email
 			}
-		} else if len(p.accounts) == 0 && m.Item("新增账号…").Chosen() {
+		} else if len(p.accounts) == 0 && m.Item(p.tr("新增账号…")).Chosen() {
 			p.beginAccount(-1)
 		}
 		if path != "" {
 			m.Separator()
-			if m.Item("移出目录列表").Disabled(p.busy).Chosen() {
+			if m.Item(p.tr("移出目录列表")).Disabled(p.busy).Chosen() {
 				p.updateUI(func() {
 					if !p.busy {
 						p.removeDirectory(path)
@@ -252,26 +261,26 @@ func (p *application) removeAccount(id int) {
 func (p *application) accountList(c *ui.Context) {
 	t := c.Theme()
 	ui.Row(c).Padding(2, 0, 8).Gap(8).AlignItems(ui.Center).Children(func() {
-		windowAction(c, ui.ButtonBase(c), backIcon, "返回项目", "返回项目", false).OnClick(func() { p.page = "" })
-		ui.Text(c, "账号管理").Grow(1).Bold().FontSize(18)
-		ui.PrimaryButton(c, "＋ 新增账号").Padding(5, 10).OnClick(func() { p.beginAccount(-1) })
+		windowAction(c, ui.ButtonBase(c), backIcon, p.tr("返回项目"), p.tr("返回项目"), false).OnClick(func() { p.page = "" })
+		ui.Text(c, p.tr("账号管理")).Grow(1).Bold().FontSize(18)
+		ui.PrimaryButton(c, p.tr("＋ 新增账号")).Padding(5, 10).OnClick(func() { p.beginAccount(-1) })
 	})
 	remove := -1
 	ui.Scroll(c.Key("accounts")).Grow(1).Children(func() {
 		for i, a := range p.accounts {
 			count := p.uses(i)
-			usage := "未使用"
+			usage := p.tr("未使用")
 			if count > 0 {
-				usage = strconv.Itoa(count) + " 个项目"
+				usage = strconv.Itoa(count) + p.tr(" 个项目")
 			}
 			if p.global.matches(a) {
-				usage = "全局默认"
+				usage = p.tr("全局默认")
 			}
 			menu := func(m *ui.Menu) {
-				if m.Item("编辑账号").Chosen() {
+				if m.Item(p.tr("编辑账号")).Chosen() {
 					p.beginAccount(i)
 				}
-				if m.Item("删除账号").Disabled(p.global.matches(a) || count > 0).Chosen() {
+				if m.Item(p.tr("删除账号")).Disabled(p.global.matches(a) || count > 0).Chosen() {
 					remove = i
 				}
 			}
@@ -291,15 +300,15 @@ func (p *application) accountList(c *ui.Context) {
 				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
 					ui.Row(c).Gap(7).AlignItems(ui.Center).Children(func() {
 						ui.Text(c, a.Label).Bold().FontSize(15).MaxWidth(118).MaxLines(1).Ellipsis("…").Tooltip(a.Label)
-						ui.Text(c, displayValue(a.Name)).Grow(1).MinWidth(0).MaxLines(1).Ellipsis("…").FontSize(13).TextColor(t.TextMuted).Tooltip(a.Name)
+						ui.Text(c, p.displayValue(a.Name)).Grow(1).MinWidth(0).MaxLines(1).Ellipsis("…").FontSize(13).TextColor(t.TextMuted).Tooltip(a.Name)
 					})
-					ui.Text(c, displayValue(a.Email)).FontSize(13).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…").Tooltip(a.Email)
+					ui.Text(c, p.displayValue(a.Email)).FontSize(13).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…").Tooltip(a.Email)
 				})
 				tag := ui.Text(c, usage).Shrink(0).FontSize(12).Radius(5).Padding(2, 7).TextColor(t.TextMuted).Background(t.Background)
 				if p.global.matches(a) {
 					tag.TextColor(ink).Background(t.Surface.Mix(ink, 0.08))
 				}
-				windowAction(c, ui.ButtonBase(c), moreIcon, a.Label+"账号操作", "账号操作", false).Menu(menu)
+				windowAction(c, ui.ButtonBase(c), moreIcon, a.Label+p.tr("账号操作"), p.tr("账号操作"), false).Menu(menu)
 			})
 		}
 	})
@@ -309,27 +318,27 @@ func (p *application) accountList(c *ui.Context) {
 }
 
 func (p *application) accountForm(c *ui.Context) {
-	title := "新增账号"
+	title := p.tr("新增账号")
 	if p.editing >= 0 {
-		title = "编辑账号"
+		title = p.tr("编辑账号")
 	}
 	t := c.Theme()
 	ui.Row(c).Padding(2, 0, 8).Gap(8).AlignItems(ui.Center).Children(func() {
-		windowAction(c, ui.ButtonBase(c), backIcon, "返回账号管理", "返回账号管理", false).OnClick(func() { p.page = "accounts" })
+		windowAction(c, ui.ButtonBase(c), backIcon, p.tr("返回账号管理"), p.tr("返回账号管理"), false).OnClick(func() { p.page = "accounts" })
 		ui.Text(c, title).Bold().FontSize(18)
 	})
 	ui.Column(c).Padding(4, 5).Gap(16).Children(func() {
-		accountField(c, "账号标签", "例如：工作", &p.draft.Label)
-		accountField(c, "提交姓名", "Lin Chen", &p.draft.Name)
-		accountField(c, "邮箱", "lin@example.org", &p.draft.Email)
+		accountField(c, p.tr("账号标签"), p.tr("例如：工作"), &p.draft.Label)
+		accountField(c, p.tr("提交姓名"), "Lin Chen", &p.draft.Name)
+		accountField(c, p.tr("邮箱"), "lin@example.org", &p.draft.Email)
 	})
 	if p.formError != "" {
 		ui.Text(c, p.formError).TextColor(t.Danger).FontSize(13)
 	}
 	ui.Spacer(c)
 	ui.Row(c).Justify(ui.End).Gap(8).Padding(10, 0, 0).Border(1, t.Border).BorderWidth(1, 0, 0, 0).Children(func() {
-		ui.Button(c, "取消").Padding(5, 14).OnClick(func() { p.page = "accounts" })
-		ui.PrimaryButton(c, "保存账号").Padding(5, 14).OnClick(p.saveAccount)
+		ui.Button(c, p.tr("取消")).Padding(5, 14).OnClick(func() { p.page = "accounts" })
+		ui.PrimaryButton(c, p.tr("保存账号")).Padding(5, 14).OnClick(p.saveAccount)
 	})
 }
 
@@ -342,17 +351,17 @@ func accountField(c *ui.Context, label, example string, value *string) {
 func (p *application) saveAccount() {
 	a := identity{strings.TrimSpace(p.draft.Label), strings.TrimSpace(p.draft.Name), strings.TrimSpace(p.draft.Email)}
 	if a.Label == "" || a.Name == "" {
-		p.formError = "请填写账号标签和提交姓名。"
+		p.formError = p.tr("请填写账号标签和提交姓名。")
 		return
 	}
 	address, err := mail.ParseAddress(a.Email)
 	if err != nil || address.Address != a.Email {
-		p.formError = "请输入有效的邮箱地址。"
+		p.formError = p.tr("请输入有效的邮箱地址。")
 		return
 	}
 	for i, existing := range p.accounts {
 		if i != p.editing && existing.Label == a.Label {
-			p.formError = "该账号标签已存在。"
+			p.formError = p.tr("该账号标签已存在。")
 			return
 		}
 	}
@@ -423,6 +432,8 @@ func main() {
 		}
 	})
 	p.restore()
+	mygo.App.SetLanguages("zh-CN", "en")
+	p.applyPreferences()
 	mygo.App.OnSecondInstance(func(_ []string, _ string) {
 		if p.win != nil {
 			p.show()
@@ -452,8 +463,12 @@ func main() {
 				p.show()
 			}
 		})
-		menu := mygo.NewMenu([]*mygo.MenuItem{{Label: "打开面板", Click: func(*mygo.MenuItem, *mygo.Window) { p.show() }}, {Label: "退出", Role: mygo.RoleQuit}})
-		p.tray.OnRightClick(func() { p.tray.SetMenu(menu); defer p.tray.SetMenu(nil); p.tray.PopUpMenu() })
+		p.tray.OnRightClick(func() {
+			menu := mygo.NewMenu([]*mygo.MenuItem{{Label: p.tr("打开面板"), Click: func(*mygo.MenuItem, *mygo.Window) { p.show() }}, {Label: p.tr("退出"), Role: mygo.RoleQuit}})
+			p.tray.SetMenu(menu)
+			defer p.tray.SetMenu(nil)
+			p.tray.PopUpMenu()
+		})
 		mygo.App.OnWillQuit(func(*mygo.QuitEvent) { p.tray.Destroy() })
 	})
 	if err := mygo.App.Run(); err != nil {

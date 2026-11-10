@@ -26,10 +26,11 @@ func (p *application) restore() {
 		data, err = loadData(p.stateFile)
 	}
 	if err != nil {
-		p.storageError = fmt.Sprintf("无法读取 %s：%v", p.stateFile, err)
+		p.storageError = fmt.Sprintf(p.tr("无法读取 %s：%v"), p.stateFile, err)
 		return
 	}
 	p.accounts = data.Accounts
+	p.preferences = data.Preferences.normalized()
 	for _, path := range data.Directories {
 		p.projects = append(p.projects, project{path: path})
 	}
@@ -39,12 +40,12 @@ func (p *application) persist(accounts []identity, projects []project) error {
 	if p.storageError != "" {
 		return errors.New(p.storageError)
 	}
-	data := savedData{Accounts: accounts}
+	data := savedData{Accounts: accounts, Preferences: p.preferences}
 	for _, r := range projects {
 		data.Directories = append(data.Directories, r.path)
 	}
 	if err := storeData(p.stateFile, data); err != nil {
-		return fmt.Errorf("保存失败：%w", err)
+		return fmt.Errorf(p.tr("保存失败：%w"), err)
 	}
 	p.accounts, p.projects = accounts, projects
 	return nil
@@ -75,8 +76,9 @@ func (p *application) pickDirectories() {
 		return
 	}
 	p.busy, p.picking = true, true
+	title := p.tr("添加 Git 项目目录")
 	go func() {
-		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: p.win, Directory: true, Multiple: true, Title: "添加 Git 项目目录"})
+		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: p.win, Directory: true, Multiple: true, Title: title})
 		p.updateUI(func() {
 			p.picking, p.busy = false, false
 			if err != nil {
@@ -94,6 +96,7 @@ func (p *application) importDirectories(paths []string) {
 	if p.busy || len(p.pendingDirectories) == 0 {
 		return
 	}
+	folderError := p.tr("请选择目录：%s")
 	paths, p.pendingDirectories = p.pendingDirectories, nil
 	p.busy = true
 	go func() {
@@ -105,7 +108,7 @@ func (p *application) importDirectories(paths []string) {
 				continue
 			}
 			if !info.IsDir() {
-				issues = append(issues, fmt.Sprintf("请选择目录：%s", path))
+				issues = append(issues, fmt.Sprintf(folderError, path))
 				continue
 			}
 			root, err := repositoryRoot(path)
@@ -154,7 +157,7 @@ func (p *application) refresh() {
 			p.global, p.projects, p.busy = global, rows, false
 			p.globalError = ""
 			if err != nil {
-				p.globalError = fmt.Sprintf("读取全局身份失败：%v", err)
+				p.globalError = fmt.Sprintf(p.tr("读取全局身份失败：%v"), err)
 			}
 			p.importDirectories(nil)
 		})
@@ -177,23 +180,23 @@ func (p *application) applyIdentity(path string, account *identity) {
 			p.quitAfterWrite = false
 			p.notice = ""
 			if err != nil {
-				p.notice = "切换失败或未完全生效：" + err.Error()
+				p.notice = p.tr("切换失败或未完全生效：") + err.Error()
 			}
 			p.refresh()
 		})
 	}()
 }
 
-func displayValue(value string) string {
+func (p *application) displayValue(value string) string {
 	if value == "" {
-		return "未设置"
+		return p.tr("未设置")
 	}
 	return value
 }
 
-func (r project) description() string {
+func (p *application) description(r project) string {
 	if r.problem != "" {
 		return r.path + "\n" + r.problem
 	}
-	return fmt.Sprintf("%s\n姓名：%s\n邮箱：%s", filepath.Clean(r.path), displayValue(r.current.NameScope), displayValue(r.current.EmailScope))
+	return filepath.Clean(r.path) + "\n" + p.tr("姓名：") + p.displayValue(r.current.NameScope) + "\n" + p.tr("邮箱：") + p.displayValue(r.current.EmailScope)
 }
