@@ -61,3 +61,7 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+CHANGELOG.md text eol=lf
+*.go text eol=lf
+*.yml text eol=lf

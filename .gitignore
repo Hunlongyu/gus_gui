@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Go builds and local UI prototypes
+/dist/
+/build/
+/docs/prototype/
+mygo-update.key

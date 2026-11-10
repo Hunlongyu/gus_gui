@@ -1,0 +1,23 @@
+name: Windows build
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go test -count=1 ./...
+      - run: go vet ./...
+      - run: go build -trimpath -ldflags "-H windowsgui" -o dist/GitUserSwitch.exe .
+      - uses: actions/upload-artifact@v7
+        with:
+          name: GitUserSwitch-windows-amd64-dev
+          path: dist/GitUserSwitch.exe
+          if-no-files-found: error

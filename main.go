@@ -1,0 +1,462 @@
+package main
+
+import (
+	"bytes"
+	"image"
+	"image/color"
+	"image/png"
+	"log"
+	"net/mail"
+	"path/filepath"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/ui"
+)
+
+const panelWidth, panelHeight = 480, 490
+
+type application struct {
+	updateUI                                     func(func())
+	win                                          *mygo.Window
+	tray                                         *mygo.Tray
+	editing                                      int
+	global                                       gitIdentity
+	stateFile, storageError, globalError, notice string
+	busy, picking                                bool
+	writing, quitAfterWrite                      bool
+	accounts                                     []identity
+	draft                                        identity
+	formError                                    string
+	pinned                                       bool
+	loginEnabled                                 bool
+	loginError                                   string
+	updateStatus                                 string
+	checkingUpdate                               bool
+	lastUpdateCheck                              time.Time
+	availableUpdate                              *mygo.Update
+	installingUpdate                             bool
+	projects                                     []project
+	pendingDirectories                           []string
+	projectQuery                                 string
+	page                                         string
+}
+
+func (p *application) view(c *ui.Context) {
+	c.SetMenuPresentation(ui.PopoverMenus)
+	if c.Shortcut(0, ui.KeyEscape) {
+		if p.page == "changelog" {
+			p.page = "settings"
+		} else if p.page == "account" {
+			p.page = "accounts"
+		} else if p.page != "" {
+			p.page = ""
+		} else if p.projectQuery != "" {
+			p.projectQuery = ""
+		} else {
+			p.win.Hide()
+		}
+	}
+	t := panelTheme(c.Theme())
+	c.SetTheme(&t)
+	ui.Column(c).Fill().Padding(4).Background(t.Background).Children(func() {
+		panel := ui.Column(c).Grow(1).Radius(8).Background(t.Surface).Border(1, t.Border)
+		if p.page == "" && !p.installingUpdate {
+			if paths := panel.DroppedFiles(); len(paths) > 0 {
+				p.importDirectories(paths)
+			}
+			if panel.FileDragOver() {
+				panel.Border(1, t.Focus)
+			}
+		}
+		panel.Children(func() {
+			p.toolbar(c)
+			ui.Column(c).Grow(1).Padding(12).Gap(6).Children(func() {
+				for _, msg := range []string{p.storageError, p.globalError, p.notice} {
+					if msg != "" {
+						ui.Text(c, msg).MaxLines(2).Ellipsis("…").Tooltip(msg).FontSize(12).TextColor(t.Danger)
+					}
+				}
+				switch p.page {
+				case "accounts":
+					p.accountList(c)
+				case "settings":
+					p.appSettings(c)
+				case "changelog":
+					p.changelogView(c)
+				case "account":
+					p.accountForm(c)
+				default:
+					if p.availableUpdate != nil {
+						ui.Button(c, "查看更新 · "+p.availableUpdate.Version).OnClick(func() { p.page = "settings" })
+					}
+					visible := p.projects
+					count := strconv.Itoa(len(p.projects))
+					if query := strings.ToLower(strings.TrimSpace(p.projectQuery)); query != "" {
+						visible = nil
+						for _, r := range p.projects {
+							if strings.Contains(strings.ToLower(filepath.Base(r.path)), query) {
+								visible = append(visible, r)
+							}
+						}
+						count = strconv.Itoa(len(visible)) + " / " + count
+					}
+					ui.Row(c).Gap(5).AlignItems(ui.Center).Children(func() {
+						ui.Text(c, "项目").Bold().FontSize(16)
+						ui.Text(c, count).Grow(1).FontSize(13).TextColor(t.TextMuted)
+						ui.SearchField(c.Key("project-search"), &p.projectQuery).Width(168).Height(26).Label("搜索项目名").Placeholder("搜索项目名")
+						withIcon(c, ui.Button(c, ""), accountIcon, "账号管理", "账号管理").OnClick(func() { p.page = "accounts" })
+						withIcon(c, ui.Button(c, ""), settingsIcon, "设置", "应用设置").OnClick(func() { p.page = "settings" })
+						withIcon(c, ui.Button(c, ""), addDirectoryIcon, "添加目录", "添加项目目录").Disabled(p.busy).OnClick(p.pickDirectories)
+					})
+					ui.Row(c).Padding(5, 12, 5, 8).Gap(10).Background(t.Background).Radius(4).Children(func() {
+						ui.Text(c, "仓库").Width(95).FontSize(12).TextColor(t.TextMuted)
+						ui.Text(c, "提交姓名").Width(64).FontSize(12).TextColor(t.TextMuted)
+						ui.Text(c, "邮箱").Grow(1).FontSize(12).TextColor(t.TextMuted)
+						ui.Text(c, "身份来源").Width(65).FontSize(12).TextAlign(ui.Center).TextColor(t.TextMuted)
+					})
+					if len(p.projects) == 0 {
+						ui.Text(c, "拖入 Git 项目目录，或点击右上角添加").TextColor(t.TextMuted).Padding(12, 8)
+					} else if len(visible) == 0 {
+						ui.Text(c, "没有匹配的项目").TextColor(t.TextMuted).Padding(12, 8)
+					}
+					ui.Scroll(c.Key("projects")).Grow(1).Children(func() {
+						for _, r := range visible {
+							a, source := r.current, r.current.source()
+							if r.problem != "" {
+								source = "不可用"
+							}
+							row := ui.Row(c.Key(r.path)).Height(32).Shrink(0).Padding(0, 12, 0, 8).Gap(10).AlignItems(ui.Center)
+							row.Border(1, t.Surface.Mix(t.Text, 0.08)).BorderWidth(0, 0, 1, 0)
+							if row.Hovered() {
+								row.Background(t.SurfaceHover)
+							}
+							row.Focusable().ContextMenu(p.identityMenu(r.path, r.current, r.problem == "")).Children(func() {
+								ui.Text(c, filepath.Base(r.path)).Width(95).MaxLines(1).Tooltip(r.description()).Bold()
+								ui.Text(c, displayValue(a.Name)).Width(64).MaxLines(1).Tooltip(a.Name)
+								ui.Text(c, displayValue(a.Email)).Grow(1).MinWidth(0).MaxLines(1).FontSize(13).TextColor(t.TextMuted).Tooltip(a.Email)
+								ui.Row(c).Width(65).Justify(ui.Center).Children(func() {
+									ink := ui.RGB(41, 108, 77)
+									if repoScope(a.NameScope) || repoScope(a.EmailScope) {
+										ink = ui.RGB(93, 76, 155)
+									}
+									if t.Dark {
+										ink = ink.Mix(t.Text, 0.63)
+									}
+									ui.Text(c, source).FontSize(12).Padding(1, 9).Radius(4).
+										TextColor(ink).Background(t.Surface.Mix(ink, 0.07)).
+										Border(1, t.Surface.Mix(ink, 0.19))
+								})
+							})
+						}
+					})
+				}
+			})
+		})
+	})
+}
+
+func (p *application) toolbar(c *ui.Context) {
+	t := c.Theme()
+	a := p.global
+	ui.Row(c).Padding(10, 12).Gap(10).AlignItems(ui.Center).Border(1, t.Border).BorderWidth(0, 0, 1, 0).Children(func() {
+		ui.Row(c.Key("global")).Focusable().Grow(1).MinWidth(0).Gap(10).AlignItems(ui.Center).ContextMenu(p.identityMenu("", p.global, true)).Children(func() {
+			ui.Row(c).Shrink(0).Padding(6, 8).Gap(5).Radius(6).Border(1, t.Border).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, globeIcon).Size(16, 16)
+				ui.Text(c, "全局").FontSize(13)
+			})
+			ui.Text(c, displayValue(a.Name)).Bold().FontSize(15).MaxWidth(112).Shrink(0).MaxLines(1).Ellipsis("…").Tooltip(a.Name)
+			ui.Text(c, displayValue(a.Email)).Grow(1).MinWidth(0).FontSize(13).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…").Tooltip(a.Email)
+		})
+		ui.Row(c).Shrink(0).Padding(2).Gap(1).Radius(7).Background(t.Background).Children(func() {
+			hint := "置顶面板"
+			if p.pinned {
+				hint = "取消置顶"
+			}
+			pin := ui.ToggleBase(c, &p.pinned)
+			if windowAction(c, pin, pinIcon, "置顶", hint, p.pinned).Changed() {
+				p.win.SetAlwaysOnTop(p.pinned)
+			}
+			windowAction(c, ui.ButtonBase(c), minimizeIcon, "最小化", "最小化到托盘", false).OnClick(func() { p.win.Hide() })
+			windowAction(c, ui.ButtonBase(c), closeIcon, "关闭", "关闭并退出", false).OnClick(mygo.App.Quit)
+		})
+	})
+}
+
+func (p *application) identityMenu(path string, current gitIdentity, available bool) func(*ui.Menu) {
+	return func(m *ui.Menu) {
+		disabled := p.busy || !available
+		local := repoScope(current.NameScope) || repoScope(current.EmailScope)
+		if path != "" {
+			if m.Item("继承全局").Radio(!local).Disabled(disabled || !local).Chosen() {
+				p.applyIdentity(path, nil)
+			}
+			m.Separator()
+		}
+		for _, a := range p.accounts {
+			if m.Item(a.Label + " · " + a.Name).Subtitle(a.Email).Radio(current.matches(a) && (path == "" || local)).Disabled(disabled).Chosen() {
+				p.applyIdentity(path, &a)
+			}
+		}
+		if available && current.Name != "" && current.Email != "" && !slices.ContainsFunc(p.accounts, current.matches) {
+			m.Separator()
+			if m.Item("保存当前身份为账号…").Chosen() {
+				p.beginAccount(-1)
+				p.draft.Name, p.draft.Email = current.Name, current.Email
+			}
+		} else if len(p.accounts) == 0 && m.Item("新增账号…").Chosen() {
+			p.beginAccount(-1)
+		}
+		if path != "" {
+			m.Separator()
+			if m.Item("移出目录列表").Disabled(p.busy).Chosen() {
+				p.updateUI(func() {
+					if !p.busy {
+						p.removeDirectory(path)
+					}
+				})
+			}
+		}
+	}
+}
+func (p *application) beginAccount(index int) {
+	p.page, p.editing, p.formError = "account", index, ""
+	p.draft = identity{}
+	if index >= 0 {
+		p.draft = p.accounts[index]
+	}
+}
+
+func (p *application) uses(id int) int {
+	count := 0
+	for _, r := range p.projects {
+		if r.current.matches(p.accounts[id]) && (repoScope(r.current.NameScope) || repoScope(r.current.EmailScope)) {
+			count++
+		}
+	}
+	return count
+}
+
+func (p *application) removeAccount(id int) {
+	if p.global.matches(p.accounts[id]) || p.uses(id) > 0 {
+		return
+	}
+	list := slices.Delete(slices.Clone(p.accounts), id, id+1)
+	if err := p.persist(list, p.projects); err != nil {
+		p.notice = err.Error()
+	}
+}
+func (p *application) accountList(c *ui.Context) {
+	t := c.Theme()
+	ui.Row(c).Padding(2, 0, 8).Gap(8).AlignItems(ui.Center).Children(func() {
+		windowAction(c, ui.ButtonBase(c), backIcon, "返回项目", "返回项目", false).OnClick(func() { p.page = "" })
+		ui.Text(c, "账号管理").Grow(1).Bold().FontSize(18)
+		ui.PrimaryButton(c, "＋ 新增账号").Padding(5, 10).OnClick(func() { p.beginAccount(-1) })
+	})
+	remove := -1
+	ui.Scroll(c.Key("accounts")).Grow(1).Children(func() {
+		for i, a := range p.accounts {
+			count := p.uses(i)
+			usage := "未使用"
+			if count > 0 {
+				usage = strconv.Itoa(count) + " 个项目"
+			}
+			if p.global.matches(a) {
+				usage = "全局默认"
+			}
+			menu := func(m *ui.Menu) {
+				if m.Item("编辑账号").Chosen() {
+					p.beginAccount(i)
+				}
+				if m.Item("删除账号").Disabled(p.global.matches(a) || count > 0).Chosen() {
+					remove = i
+				}
+			}
+			row := ui.Row(c.Key(a.Label)).Height(73).Shrink(0).Gap(10).Padding(0, 5).AlignItems(ui.Center).
+				Border(1, t.Border).BorderWidth(0, 0, 1, 0)
+			row.Focusable().ContextMenu(menu).Children(func() {
+				ink := ui.RGB(92, 80, 153)
+				if p.global.matches(a) {
+					ink = ui.RGB(43, 105, 80)
+				}
+				if t.Dark {
+					ink = ink.Mix(t.Text, 0.60)
+				}
+				ui.Box(c).Size(35, 35).Radius(9).Background(t.Surface.Mix(ink, 0.12)).AlignItems(ui.Center).Justify(ui.Center).Children(func() {
+					ui.Icon(c, accountIcon).Size(19, 19).TextColor(ink)
+				})
+				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
+					ui.Row(c).Gap(7).AlignItems(ui.Center).Children(func() {
+						ui.Text(c, a.Label).Bold().FontSize(15).MaxWidth(118).MaxLines(1).Ellipsis("…").Tooltip(a.Label)
+						ui.Text(c, displayValue(a.Name)).Grow(1).MinWidth(0).MaxLines(1).Ellipsis("…").FontSize(13).TextColor(t.TextMuted).Tooltip(a.Name)
+					})
+					ui.Text(c, displayValue(a.Email)).FontSize(13).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…").Tooltip(a.Email)
+				})
+				tag := ui.Text(c, usage).Shrink(0).FontSize(12).Radius(5).Padding(2, 7).TextColor(t.TextMuted).Background(t.Background)
+				if p.global.matches(a) {
+					tag.TextColor(ink).Background(t.Surface.Mix(ink, 0.08))
+				}
+				windowAction(c, ui.ButtonBase(c), moreIcon, a.Label+"账号操作", "账号操作", false).Menu(menu)
+			})
+		}
+	})
+	if remove >= 0 {
+		p.removeAccount(remove)
+	}
+}
+
+func (p *application) accountForm(c *ui.Context) {
+	title := "新增账号"
+	if p.editing >= 0 {
+		title = "编辑账号"
+	}
+	t := c.Theme()
+	ui.Row(c).Padding(2, 0, 8).Gap(8).AlignItems(ui.Center).Children(func() {
+		windowAction(c, ui.ButtonBase(c), backIcon, "返回账号管理", "返回账号管理", false).OnClick(func() { p.page = "accounts" })
+		ui.Text(c, title).Bold().FontSize(18)
+	})
+	ui.Column(c).Padding(4, 5).Gap(16).Children(func() {
+		accountField(c, "账号标签", "例如：工作", &p.draft.Label)
+		accountField(c, "提交姓名", "Lin Chen", &p.draft.Name)
+		accountField(c, "邮箱", "lin@example.org", &p.draft.Email)
+	})
+	if p.formError != "" {
+		ui.Text(c, p.formError).TextColor(t.Danger).FontSize(13)
+	}
+	ui.Spacer(c)
+	ui.Row(c).Justify(ui.End).Gap(8).Padding(10, 0, 0).Border(1, t.Border).BorderWidth(1, 0, 0, 0).Children(func() {
+		ui.Button(c, "取消").Padding(5, 14).OnClick(func() { p.page = "accounts" })
+		ui.PrimaryButton(c, "保存账号").Padding(5, 14).OnClick(p.saveAccount)
+	})
+}
+
+func accountField(c *ui.Context, label, example string, value *string) {
+	ui.Field(c.Key(label), label, func() {
+		ui.TextInput(c, value).Label(label).Placeholder(example).Height(36).Radius(6).Padding(6, 10)
+	}).Gap(5)
+}
+
+func (p *application) saveAccount() {
+	a := identity{strings.TrimSpace(p.draft.Label), strings.TrimSpace(p.draft.Name), strings.TrimSpace(p.draft.Email)}
+	if a.Label == "" || a.Name == "" {
+		p.formError = "请填写账号标签和提交姓名。"
+		return
+	}
+	address, err := mail.ParseAddress(a.Email)
+	if err != nil || address.Address != a.Email {
+		p.formError = "请输入有效的邮箱地址。"
+		return
+	}
+	for i, existing := range p.accounts {
+		if i != p.editing && existing.Label == a.Label {
+			p.formError = "该账号标签已存在。"
+			return
+		}
+	}
+	list := slices.Clone(p.accounts)
+	if p.editing < 0 {
+		list = append(list, a)
+	} else {
+		list[p.editing] = a
+	}
+	if err := p.persist(list, p.projects); err != nil {
+		p.formError = err.Error()
+		return
+	}
+	p.page = "accounts"
+}
+
+func trayIcon() []byte {
+	img := image.NewRGBA(image.Rect(0, 0, 32, 32))
+	for y := 2; y < 30; y++ {
+		for x := 2; x < 30; x++ {
+			ink := color.RGBA{32, 99, 75, 255}
+			if (x >= 8 && x <= 11 && y >= 8 && y <= 24) || (x >= 10 && x <= 23 && y >= 15 && y <= 17) || (x >= 20 && x <= 23 && y >= 8 && y <= 16) {
+				ink = color.RGBA{255, 255, 255, 255}
+			}
+			img.SetRGBA(x, y, ink)
+		}
+	}
+	var out bytes.Buffer
+	if err := png.Encode(&out, img); err != nil {
+		panic(err)
+	}
+	return out.Bytes()
+}
+func (p *application) show() {
+	if mygo.Updater.Enabled() && time.Since(p.lastUpdateCheck) >= 6*time.Hour {
+		p.checkUpdates()
+	}
+	p.loginEnabled = mygo.App.OpenAtLogin()
+	p.refresh()
+	a := p.tray.Bounds()
+	if a.Width > 0 && a.Height > 0 {
+		area := mygo.Screen.DisplayNearestPoint(mygo.Point{X: a.X + a.Width/2, Y: a.Y + a.Height/2}).WorkArea
+		b := p.win.Bounds()
+		x, y := a.X+(a.Width-b.Width)/2, a.Y+a.Height+6
+		if y+b.Height > area.Y+area.Height {
+			y = a.Y - b.Height - 6
+		}
+		p.win.SetPosition(max(area.X, min(x, area.X+area.Width-b.Width)), max(area.Y, min(y, area.Y+area.Height-b.Height)))
+	} else {
+		p.win.Center()
+	}
+	p.win.Show()
+}
+func main() {
+	p := &application{}
+	mygo.App.SetName("Git User Switch")
+	if !mygo.App.RequestSingleInstanceLock() {
+		return
+	}
+	mygo.App.OnBeforeQuit(func(e *mygo.QuitEvent) {
+		if p.installingUpdate {
+			e.PreventDefault()
+			return
+		}
+		if p.writing {
+			p.quitAfterWrite = true
+			e.PreventDefault()
+		}
+	})
+	p.restore()
+	mygo.App.OnSecondInstance(func(_ []string, _ string) {
+		if p.win != nil {
+			p.show()
+		}
+	})
+
+	mygo.App.WhenReady(func() {
+		var err error
+		p.tray, err = mygo.NewTray(mygo.TrayOptions{Icon: trayIcon(), ToolTip: "Git User Switch"})
+		if err != nil {
+			log.Fatal(err)
+		}
+		p.win = mygo.NewWindow(mygo.WindowOptions{Title: "Git User Switch", Content: ui.View(p.view), Width: panelWidth, Height: panelHeight, Hidden: true, Frameless: true, SkipTaskbar: true, DisableResize: true})
+		p.updateUI = p.win.Update
+		if mygo.Updater.Enabled() {
+			p.checkUpdates()
+		}
+		p.win.OnBlur(func() {
+			if !p.pinned && !p.picking {
+				p.win.Hide()
+			}
+		})
+		p.tray.OnClick(func() {
+			if p.win.IsVisible() {
+				p.win.Hide()
+			} else {
+				p.show()
+			}
+		})
+		menu := mygo.NewMenu([]*mygo.MenuItem{{Label: "打开面板", Click: func(*mygo.MenuItem, *mygo.Window) { p.show() }}, {Label: "退出", Role: mygo.RoleQuit}})
+		p.tray.OnRightClick(func() { p.tray.SetMenu(menu); defer p.tray.SetMenu(nil); p.tray.PopUpMenu() })
+		mygo.App.OnWillQuit(func(*mygo.QuitEvent) { p.tray.Destroy() })
+	})
+	if err := mygo.App.Run(); err != nil {
+		log.Fatal(err)
+	}
+}

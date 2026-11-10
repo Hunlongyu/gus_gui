@@ -1,0 +1,37 @@
+name: Publish Windows release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Verify release version
+        run: |
+          $version = (Get-Content -Raw mygo.json | ConvertFrom-Json).version
+          if ($version -notmatch '^\d+\.\d+\.\d+$' -or "v$version" -cne $env:GITHUB_REF_NAME) { throw 'Tag and stable version must match' }
+      - run: go test -count=1 ./...
+      - run: go vet ./...
+      - name: Build installer and signed update
+        env:
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
+        run: |
+          if (!$env:MYGO_UPDATER_PRIVATE_KEY) { throw 'Missing update signing secret' }
+          go run github.com/egoist/mygo/cmd/mygo build -platform windows/amd64
+      - name: Verify signed archive against embedded public key
+        env:
+          GUS_VERIFY_RELEASE: '1'
+        run: go test -count=1 -run '^TestSignedReleaseArchive$' .
+      - name: Verify assets and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/scripts/publish.ps1
