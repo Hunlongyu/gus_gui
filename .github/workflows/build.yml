@@ -1,23 +1,55 @@
-name: Windows build
+name: Cross-platform CI
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  windows:
-    runs-on: windows-latest
+  build:
+    name: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {runner: windows-latest, platform: windows/amd64, target: windows-amd64}
+          - {runner: windows-11-arm, platform: windows/arm64, target: windows-arm64}
+          - {runner: macos-15-intel, platform: darwin/amd64, target: darwin-amd64}
+          - {runner: macos-latest, platform: darwin/arm64, target: darwin-arm64}
+          - {runner: ubuntu-latest, platform: linux/amd64, target: linux-amd64}
+          - {runner: ubuntu-24.04-arm, platform: linux/arm64, target: linux-arm64}
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      - name: Install Linux native UI runtime
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0t64 libayatana-appindicator3-1 xvfb dbus-x11
       - run: go test -count=1 ./...
       - run: go vet ./...
-      - run: go run github.com/egoist/mygo/cmd/mygo build -platform windows/amd64 -skip-installer -o dist
+      - name: Build native application
+        run: go run github.com/egoist/mygo/cmd/mygo build -platform '${{ matrix.platform }}' -skip-installer -skip-dmg -o dist
+      - name: Smoke test without resource sidecars
+        if: runner.os != 'Linux'
+        run: ./.github/scripts/smoke.ps1 -Platform '${{ matrix.target }}'
+      - name: Smoke test on a Linux desktop without a tray host
+        if: runner.os == 'Linux'
+        run: xvfb-run -a dbus-run-session -- pwsh -NoProfile -File .github/scripts/smoke.ps1 -Platform '${{ matrix.target }}'
+      - name: Archive development build
+        run: |
+          $target = '${{ matrix.target }}'
+          $entry = if ($IsWindows) { 'gus.exe' } elseif ($IsMacOS) { 'gus.app' } else { 'gus' }
+          tar -czf "dist/gus-$target-dev.tar.gz" -C "dist/$target" $entry
       - uses: actions/upload-artifact@v7
         with:
-          name: gus-windows-amd64-dev
-          path: dist/windows-amd64/gus.exe
+          name: gus-${{ matrix.target }}-dev
+          path: dist/gus-${{ matrix.target }}-dev.tar.gz
           if-no-files-found: error

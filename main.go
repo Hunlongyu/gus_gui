@@ -9,6 +9,7 @@ import (
 	"net/mail"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -72,7 +73,7 @@ func (p *application) view(c *ui.Context) {
 		} else if p.projectQuery != "" {
 			p.projectQuery = ""
 		} else {
-			p.win.Hide()
+			p.minimize()
 		}
 	}
 	base := c.Theme()
@@ -174,7 +175,11 @@ func (p *application) toolbar(c *ui.Context) {
 			if windowAction(c, pin, pinIcon, p.tr("置顶"), hint, p.pinned).Changed() {
 				p.win.SetAlwaysOnTop(p.pinned)
 			}
-			windowAction(c, ui.ButtonBase(c), minimizeIcon, p.tr("最小化"), p.tr("最小化到托盘"), false).OnClick(func() { p.win.Hide() })
+			minimizeHint := p.tr("最小化")
+			if p.hideToTray() {
+				minimizeHint = p.tr("最小化到托盘")
+			}
+			windowAction(c, ui.ButtonBase(c), minimizeIcon, p.tr("最小化"), minimizeHint, false).OnClick(p.minimize)
 			windowAction(c, ui.ButtonBase(c), closeIcon, p.tr("关闭"), p.tr("关闭并退出"), false).OnClick(mygo.App.Quit)
 		})
 	})
@@ -386,13 +391,35 @@ func trayIcon() []byte {
 	}
 	return out.Bytes()
 }
+
+// Linux desktops may have no StatusNotifier host even when AppIndicator is
+// installed. Keep their window reachable from the taskbar at all times.
+func (p *application) hideToTray() bool {
+	return runtime.GOOS != "linux" && p.tray != nil
+}
+
+func (p *application) minimize() {
+	p.savePanelSize()
+	if p.hideToTray() {
+		p.win.Hide()
+	} else {
+		p.win.Minimize()
+	}
+}
+
 func (p *application) show() {
 	if mygo.Updater.Enabled() && time.Since(p.lastUpdateCheck) >= 6*time.Hour {
 		p.checkUpdates()
 	}
 	p.loginEnabled = mygo.App.OpenAtLogin()
 	p.refresh()
-	a := p.tray.Bounds()
+	var a mygo.Rectangle
+	if p.tray != nil {
+		a = p.tray.Bounds()
+	}
+	if p.win.IsMinimized() {
+		p.win.Restore()
+	}
 	if a.Width > 0 && a.Height > 0 {
 		area := mygo.Screen.DisplayNearestPoint(mygo.Point{X: a.X + a.Width/2, Y: a.Y + a.Height/2}).WorkArea
 		b := p.win.Bounds()
@@ -440,7 +467,9 @@ func main() {
 		if p.writing {
 			p.quitAfterWrite = true
 			e.PreventDefault()
+			return
 		}
+		p.savePanelSize()
 	})
 	p.restore()
 	mygo.App.SetLanguages("zh-CN", "en")
@@ -450,18 +479,24 @@ func main() {
 			p.show()
 		}
 	})
+	mygo.App.OnActivate(func(_ bool) {
+		if p.win != nil {
+			p.show()
+		}
+	})
 
 	mygo.App.WhenReady(func() {
 		var err error
 		p.tray, err = mygo.NewTray(mygo.TrayOptions{Icon: trayIcon(), ToolTip: appName})
 		if err != nil {
-			log.Fatal(err)
+			// A missing tray must not prevent access to accounts and projects.
+			log.Printf("tray unavailable; using a regular window: %v", err)
 		}
 		p.win = mygo.NewWindow(mygo.WindowOptions{
 			Title: appName, Content: ui.View(p.view),
 			Width: panelWidth, Height: panelHeight,
 			MinWidth: minPanelWidth, MinHeight: minPanelHeight, StateKey: "tray-panel",
-			Hidden: true, Frameless: true, SkipTaskbar: true,
+			Hidden: true, Frameless: true, SkipTaskbar: runtime.GOOS == "windows" && p.tray != nil,
 		})
 		if err := p.win.SetIcon(appIcon); err != nil {
 			log.Fatal("window icon: ", err)
@@ -473,26 +508,42 @@ func main() {
 			p.checkUpdates()
 		}
 		p.win.OnBlur(func() {
-			if !p.pinned && !p.picking {
+			if p.hideToTray() && !p.pinned && !p.picking {
 				p.win.Hide()
 			}
 		})
-		p.tray.OnClick(func() {
-			if p.win.IsVisible() {
-				p.win.Hide()
+		if p.tray != nil {
+			menu := func() *mygo.Menu {
+				return mygo.NewMenu([]*mygo.MenuItem{{Label: p.tr("打开面板"), Click: func(*mygo.MenuItem, *mygo.Window) { p.show() }}, {Label: p.tr("退出"), Role: mygo.RoleQuit}})
+			}
+			if runtime.GOOS == "linux" {
+				// AppIndicator only supports persistent menus; PopUpMenu is a no-op.
+				p.tray.SetMenu(menu())
 			} else {
-				p.show()
+				p.tray.OnClick(func() {
+					if p.win.IsVisible() {
+						p.win.Hide()
+					} else {
+						p.show()
+					}
+				})
+				p.tray.OnRightClick(func() {
+					p.tray.SetMenu(menu())
+					defer p.tray.SetMenu(nil)
+					p.tray.PopUpMenu()
+				})
 			}
-		})
-		p.tray.OnRightClick(func() {
-			menu := mygo.NewMenu([]*mygo.MenuItem{{Label: p.tr("打开面板"), Click: func(*mygo.MenuItem, *mygo.Window) { p.show() }}, {Label: p.tr("退出"), Role: mygo.RoleQuit}})
-			p.tray.SetMenu(menu)
-			defer p.tray.SetMenu(nil)
-			p.tray.PopUpMenu()
-		})
+		}
+		if runtime.GOOS != "windows" || p.tray == nil {
+			p.show()
+			if mygo.App.WasOpenedAtLogin() {
+				p.minimize()
+			}
+		}
 		mygo.App.OnWillQuit(func(*mygo.QuitEvent) {
-			p.savePanelSize()
-			p.tray.Destroy()
+			if p.tray != nil {
+				p.tray.Destroy()
+			}
 		})
 	})
 	if err := mygo.App.Run(); err != nil {

@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -37,13 +38,17 @@ func TestSignedReleaseArchive(t *testing.T) {
 		}
 	}
 	decode("mygo.json", &cfg)
-	dir := filepath.Join(cfg.Out, "windows-amd64")
+	platform := os.Getenv("GUS_RELEASE_PLATFORM")
+	if platform == "" {
+		platform = runtime.GOOS + "-" + runtime.GOARCH
+	}
+	dir := filepath.Join(cfg.Out, platform)
 	var m struct {
 		Version, URL, Notes string
 		Size                int
 		Signature           []byte
 	}
-	decode(filepath.Join(dir, "update-windows-amd64.json"), &m)
+	decode(filepath.Join(dir, "update-"+platform+".json"), &m)
 	u, err := url.Parse(m.URL)
 	if err != nil || u.Scheme != "https" || u.Host != "github.com" || !strings.HasPrefix(u.Path, "/"+cfg.Updates.GitHub+"/releases/download/v"+cfg.Version+"/") {
 		t.Fatalf("unexpected update URL %q", m.URL)
@@ -68,6 +73,11 @@ func TestSignedReleaseArchive(t *testing.T) {
 	defer stream.Close()
 	files := tar.NewReader(stream)
 	required := map[string]bool{"gus.exe": true, "GitUserSwitch.exe": true}
+	if strings.HasPrefix(platform, "linux-") {
+		required = map[string]bool{"gus": true, "gus.desktop": true}
+	} else if strings.HasPrefix(platform, "darwin-") {
+		required = map[string]bool{"gus.app/Contents/MacOS/gus": true, "gus.app/Contents/Info.plist": true}
+	}
 	for {
 		entry, err := files.Next()
 		if err == io.EOF {

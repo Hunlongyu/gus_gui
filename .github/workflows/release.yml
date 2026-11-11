@@ -1,19 +1,32 @@
-name: Publish Windows release
+name: Publish cross-platform release
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing stable version tag to publish (for example v1.2.3)'
+        description: 'Existing stable version tag to publish (for example v1.4.0)'
         required: true
         type: string
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: release-${{ inputs.tag }}
   cancel-in-progress: false
 jobs:
-  release:
-    runs-on: windows-latest
+  package:
+    name: Package ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {runner: windows-latest, platform: windows/amd64, target: windows-amd64}
+          - {runner: windows-11-arm, platform: windows/arm64, target: windows-arm64}
+          - {runner: macos-latest, platform: darwin/universal, target: darwin-universal}
+          - {runner: ubuntu-latest, platform: linux/amd64, target: linux-amd64}
+          - {runner: ubuntu-24.04-arm, platform: linux/arm64, target: linux-arm64}
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - uses: actions/checkout@v7
         with:
@@ -27,21 +40,55 @@ jobs:
         run: |
           $version = (Get-Content -Raw mygo.json | ConvertFrom-Json).version
           if ($version -notmatch '^\d+\.\d+\.\d+$' -or "v$version" -cne $env:RELEASE_TAG) { throw 'Tag and stable version must match' }
+      - name: Install Linux native UI runtime
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0t64 libayatana-appindicator3-1 xvfb dbus-x11
       - run: go test -count=1 ./...
       - run: go vet ./...
-      - name: Package the entry point used by older installations
-        run: go build -trimpath -ldflags "-s -w -H windowsgui" -o resources/windows-amd64/GitUserSwitch.exe ./cmd/legacy-launcher
-      - name: Build installer and signed update
+      - name: Package the entry point used by older Windows installations
+        if: runner.os == 'Windows'
+        run: go build -trimpath -ldflags "-s -w -H windowsgui" -o 'resources/${{ matrix.target }}/GitUserSwitch.exe' ./cmd/legacy-launcher
+      - name: Build packages and signed updates
         env:
           MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
         run: |
           if (!$env:MYGO_UPDATER_PRIVATE_KEY) { throw 'Missing update signing secret' }
-          go run github.com/egoist/mygo/cmd/mygo build -platform windows/amd64
+          go run github.com/egoist/mygo/cmd/mygo build -platform '${{ matrix.platform }}'
       - name: Verify signed archive against embedded public key
         env:
           GUS_VERIFY_RELEASE: '1'
+          GUS_RELEASE_PLATFORM: ${{ matrix.target }}
         run: go test -count=1 -run '^TestSignedReleaseArchive$' .
-      - name: Verify assets and publish
+      - name: Smoke test release application
+        if: runner.os != 'Linux'
+        run: ./.github/scripts/smoke.ps1 -Platform '${{ matrix.target }}' -BuildRoot build
+      - name: Smoke test Linux release without a tray host
+        if: runner.os == 'Linux'
+        run: xvfb-run -a dbus-run-session -- pwsh -NoProfile -File .github/scripts/smoke.ps1 -Platform '${{ matrix.target }}' -BuildRoot build
+      - name: Collect release assets including standalone executables
+        run: ./.github/scripts/collect-assets.ps1 -Platform '${{ matrix.target }}'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.target }}
+          path: build/release-assets/${{ matrix.target }}/
+          if-no-files-found: error
+  publish:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          path: build/release-assets
+      - name: Verify complete platform set and publish
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./.github/scripts/publish.ps1

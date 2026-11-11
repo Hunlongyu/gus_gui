@@ -9,6 +9,7 @@ import (
 func TestPanelSizeSurvivesRestartAndOtherSettingsChanges(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
 	p := &application{}
 	p.restore()
 	p.preferences = preferences{Language: "en", Appearance: "dark"}

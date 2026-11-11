@@ -4,6 +4,9 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -54,7 +57,7 @@ func (p *application) appSettings(c *ui.Context) {
 		ui.Divider(c)
 		ui.Row(c).Height(48).Padding(0, 8).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, p.tr("开机自启")).Grow(1)
-			if ui.Switch(c, &p.loginEnabled).Label(p.tr("开机自启")).Tooltip(p.tr("登录 Windows 后启动到托盘")).Changed() {
+			if ui.Switch(c, &p.loginEnabled).Label(p.tr("开机自启")).Tooltip(p.tr("登录系统后启动并最小化")).Changed() {
 				p.loginError = ""
 				if err := mygo.App.SetOpenAtLogin(p.loginEnabled); err != nil {
 					p.loginError = p.tr("无法更改开机自启：") + err.Error()
@@ -87,7 +90,12 @@ func (p *application) appSettings(c *ui.Context) {
 		}
 		if up := p.availableUpdate; up != nil {
 			ui.Scroll(c.Key("update-notes")).Height(94).Padding(6).Background(t.Surface).Children(func() { ui.Text(c, p.notes(up.Notes)).FontSize(13) })
-			ui.PrimaryButton(c, p.tr("安装并重启")).Disabled(p.checkingUpdate || p.busy || p.installingUpdate).OnClick(p.installUpdate)
+			if canInstallUpdate() {
+				ui.PrimaryButton(c, p.tr("安装并重启")).Disabled(p.checkingUpdate || p.busy || p.installingUpdate).OnClick(p.installUpdate)
+			} else {
+				ui.Text(c, p.tr("单文件版请下载新版替换当前文件。")).FontSize(12).TextColor(t.TextMuted)
+				ui.Link(c, p.tr("下载新版"), appRepositoryURL+"/releases/latest")
+			}
 		}
 		ui.Divider(c)
 		ui.Column(c).Padding(12, 8).Gap(6).Children(func() {
@@ -150,7 +158,7 @@ func (p *application) changelogView(c *ui.Context) {
 
 func (p *application) installUpdate() {
 	up := p.availableUpdate
-	if up == nil || p.busy || p.checkingUpdate || p.installingUpdate {
+	if up == nil || p.busy || p.checkingUpdate || p.installingUpdate || !canInstallUpdate() {
 		return
 	}
 	p.installingUpdate, p.busy = true, true
@@ -182,4 +190,23 @@ func (p *application) installUpdate() {
 			mygo.App.Relaunch()
 		})
 	}()
+}
+
+// MyGo replaces the archive's canonical executable but relaunches the original
+// filename. Versioned standalone downloads therefore use manual replacement;
+// otherwise an update would restart the old binary and add package sidecars.
+func canInstallUpdate() bool {
+	exe, err := os.Executable()
+	return err == nil && updateExecutableName(filepath.Base(exe), runtime.GOOS)
+}
+
+func updateExecutableName(name, goos string) bool {
+	switch goos {
+	case "windows":
+		return strings.EqualFold(name, "gus.exe")
+	case "linux", "darwin":
+		return name == "gus"
+	default:
+		return false
+	}
 }

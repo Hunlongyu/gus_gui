@@ -4,7 +4,7 @@
 
 <h1 align="center">gus</h1>
 
-<p align="center">在 Windows 托盘里，管理每个 Git 项目的提交身份。</p>
+<p align="center">在 Windows、macOS 和 Linux 上，管理每个 Git 项目的提交身份。</p>
 
 <p align="center">
   <a href="https://github.com/Hunlongyu/gus_gui/releases">下载发布版</a> ·
@@ -32,14 +32,21 @@ gus 管理 Git 的 `user.name` 和 `user.email`。GitHub / GitLab 的登录凭�
 
 ## 下载与启动
 
-需要 **Windows x64** 和已加入 `PATH` 的 **Git for Windows**。在 PowerShell 运行 `git --version`，确认 Git 可用。
+所有平台均需要已加入 `PATH` 的 **Git**，可运行 `git --version` 确认可用。到 [Releases](https://github.com/Hunlongyu/gus_gui/releases/latest) 选择对应平台；`amd64` 表示 x64，`arm64` 表示 ARM64。
 
-| 获取方式 | 操作 |
-| --- | --- |
-| 安装包 | 打开 [Releases](https://github.com/Hunlongyu/gus_gui/releases)，下载已发布的 Windows x64 安装程序。尚无发布版时，可使用开发构建。 |
-| 开发构建 | 登录 GitHub，打开最近一次成功的 [Windows build](https://github.com/Hunlongyu/gus_gui/actions/workflows/build.yml)，在 **Artifacts** 下载 `gus-windows-amd64-dev`，解压后运行 `gus.exe`。 |
+| 平台 | 单文件 / 应用包 | 安装包 |
+| --- | --- | --- |
+| Windows x64、ARM64 | `gus-<版本>-windows-<架构>.exe`，直接运行 | `gus-setup-<版本>-<架构>.exe` |
+| macOS Intel、Apple Silicon | `gus-<版本>-darwin-universal.tar.gz`，解压得到 `gus.app` | `gus-<版本>.dmg`，拖入 Applications |
+| Linux x64、ARM64 | `gus-<版本>-linux-<架构>`，添加执行权限后运行 | `gus_<版本>_<架构>.deb`，或使用 `install.sh` 安装 `.tar.gz` |
 
-启动后，点击通知区域中的红色 gus 图标打开面板。图标被收起时，展开任务栏的“显示隐藏的图标”。再次运行程序会唤起已有面板。
+Windows 和 Linux 单文件已嵌入图标和界面资源，不需要旁边的 PNG、DLL 或资源目录。Linux 仍需系统 **GTK 3** 运行库；Debian/Ubuntu 可用 `sudo apt install libgtk-3-0 git`（Ubuntu 24.04 使用 `libgtk-3-0t64`）。可选安装 `libayatana-appindicator3-1` 并启用桌面的托盘支持。下载单文件后先运行 `chmod +x gus-<版本>-linux-<架构>`。`.deb` 可用 `sudo apt install ./gus_<版本>_<架构>.deb` 安装，自动处理依赖。无需 WebKit 或 WebView2。
+
+macOS 应保留完整的 `.app` 包，不能只复制其中的 Mach-O 文件，否则图标、启动项和更新功能不完整。目前 macOS 构建仅有 ad-hoc 签名，尚无 Apple Developer ID 签名和公证，首次打开可能被 Gatekeeper 拦截。
+
+Windows 启动后从通知区域点击 gus 图标打开面板。macOS 可从菜单栏或 Dock 打开。Linux 启动时显示窗口，最小化后可从任务栏恢复，托盘菜单也可打开面板；没有托盘的桌面仍可正常使用。再次运行程序会唤起已有面板。
+
+开发构建在最近一次成功的 [Cross-platform CI](https://github.com/Hunlongyu/gus_gui/actions/workflows/build.yml) 的 **Artifacts** 中，按系统和架构下载并解压。所有正式发布文件的 SHA-256 校验值见 `SHA256SUMS`。
 
 ## 三步开始使用
 
@@ -93,7 +100,7 @@ git config --show-scope --show-origin --get user.email
 
 ## 外观与日常使用
 
-点击齿轮进入设置，选择语言和外观，或启用开机自启。启用后，登录 Windows 时会启动到托盘。
+点击齿轮进入设置，选择语言和外观，或启用开机自启。启用后，登录系统时会启动并最小化。macOS 自启应使用已放入 Applications 的完整应用包。
 
 <p align="center">
   <img src="assets/images/gus-settings.png" width="480" alt="gus 设置页：语言、外观、开机自启、应用更新和关于">
@@ -102,18 +109,20 @@ git config --show-scope --show-origin --get user.email
 截图使用示例账号和仓库；设置页来自本地构建。
 
 - **图钉**：让面板保持置顶，方便拖入项目或连续切换。
-- **最小化**：隐藏面板，程序继续留在托盘。
+- **最小化**：Windows / macOS 隐藏到托盘；Linux 或托盘不可用时，最小化到任务栏。
 - **关闭**：退出程序，也可以在托盘右键菜单中选择“退出”。
 - **调整大小**：拖动边缘或四角，正常退出后会记住面板尺寸。
-- **应用更新**：设置页可查看更新日志；启用在线更新的构建可检查新版本，校验签名后安装并重启。
+- **应用更新**：安装版在有写入权限时可校验签名后安装并重启。单文件版保留下载文件名时，点击“下载新版”到发布页替换文件，避免更新后重新打开旧文件；Linux `.deb` 建议通过新包升级。
 
 ## 数据保存在哪里
 
 账号模板、项目目录列表、语言和外观偏好保存在：
 
-```text
-%APPDATA%\GitUserSwitch\state.json
-```
+| 平台 | 路径 |
+| --- | --- |
+| Windows | `%APPDATA%\GitUserSwitch\state.json` |
+| macOS | `~/Library/Application Support/GitUserSwitch/state.json` |
+| Linux | `$XDG_CONFIG_HOME/GitUserSwitch/state.json`，默认 `~/.config/GitUserSwitch/state.json` |
 
 实际提交身份保存在 Git 配置中。右键项目选择 **移出目录列表** 只会移除 gus 中的记录，项目文件和 Git 配置会保留。备份应用数据时，可复制上面的 `state.json`。
 
@@ -132,22 +141,28 @@ go run github.com/egoist/mygo/cmd/mygo build -platform windows/amd64 -skip-insta
 .\dist\windows-amd64\gus.exe
 ```
 
-测试使用临时仓库和隔离的全局 Git 配置。`-skip-installer` 生成可执行程序，适合本地运行。
+测试使用临时仓库和隔离的全局 Git 配置。`-skip-installer` 生成可执行程序，适合本地运行。MyGo 无需 cgo，可交叉编译：
+
+```sh
+go run github.com/egoist/mygo/cmd/mygo build -platform windows/amd64,windows/arm64,linux/amd64,linux/arm64,darwin/universal -skip-installer -skip-dmg -o dist
+```
+
+macOS 的签名和 DMG 生成应在 macOS 上执行。完整发布由 GitHub Actions 在各系统原生运行器上打包；Linux 依赖见上文。
 
 启动图标、窗口图标和托盘图标共用 [resources/icon.png](resources/icon.png)。MyGo 构建命令会将多尺寸 Windows 图标嵌入 EXE；直接使用 `go build` 不会生成这些图标资源。
 
 <details>
 <summary>维护者：发布流程</summary>
 
-日常推送到 `main` 和提交 PR 会触发 [Windows build](.github/workflows/build.yml)，执行测试、静态检查并生成开发构建。
+日常推送到 `main` 和提交 PR 会触发 [Cross-platform CI](.github/workflows/build.yml)，在 Windows、macOS、Linux 的 x64 和 ARM64 原生运行器上执行测试、静态检查、编译和独立启动检查，生成六套开发构建。Linux 启动检查运行于 Xvfb / D-Bus 环境，不依赖托盘宿主。启动检查确认进程正常运行，不等同于对所有桌面环境的视觉验收。
 
 发布正式版本时：
 
 1. 更新 [mygo.json](mygo.json) 中的版本号和 [CHANGELOG.md](CHANGELOG.md)。
-2. 创建与版本号一致的稳定版标签，例如 `v1.2.3`。
-3. 从 `main` 手动运行 **Publish Windows release**，填写该标签。
+2. 等待六个平台的 CI 通过，创建与版本号一致的稳定版标签，例如 `v1.4.0`。
+3. 从 `main` 手动运行 **Publish cross-platform release**，填写该标签。
 
-[发布工作流](.github/workflows/release.yml) 使用仓库密钥 `MYGO_UPDATER_PRIVATE_KEY` 签名，校验通过后发布安装包及更新清单。
+[发布工作流](.github/workflows/release.yml) 使用仓库密钥 `MYGO_UPDATER_PRIVATE_KEY` 对每个平台的更新包签名，并验证签名、版本、更新地址和归档中的入口文件。五套发布构建全部完成后，才汇总单文件程序、安装包、更新清单和校验值并发布。相同的安装脚本必须逐字节一致才能去重；已发布版本不允许覆盖。更新签名不等同于 Windows 代码签名或 Apple 公证。
 
 </details>
 

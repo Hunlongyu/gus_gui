@@ -25,18 +25,14 @@ type savedData struct {
 
 func samePath(a, b string) bool {
 	a, b = filepath.Clean(a), filepath.Clean(b)
-	if runtime.GOOS == "windows" {
-		if strings.EqualFold(a, b) {
-			return true
-		}
-		if strings.Contains(a, "~") || strings.Contains(b, "~") {
-			first, errA := os.Stat(a)
-			second, errB := os.Stat(b)
-			return errA == nil && errB == nil && os.SameFile(first, second)
-		}
-		return false
+	if a == b || runtime.GOOS == "windows" && strings.EqualFold(a, b) {
+		return true
 	}
-	return a == b
+	// Git resolves symlinks, including /var -> /private/var on macOS and
+	// Windows short paths. Compare filesystem identity before rejecting aliases.
+	first, errA := os.Stat(a)
+	second, errB := os.Stat(b)
+	return errA == nil && errB == nil && os.SameFile(first, second)
 }
 
 func dataPath() (string, error) {

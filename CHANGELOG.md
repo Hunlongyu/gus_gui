@@ -1,5 +1,25 @@
 # 更新日志
 
+## 1.4.0
+
+### 简体中文
+
+- 发布 Windows x64 / ARM64、macOS Intel / Apple Silicon 通用版、Linux x64 / ARM64，补齐各平台安装包和签名更新包。
+- Windows 和 Linux 新增无需资源文件的单文件下载；保留下载文件名的单文件版通过发布页手动更新。
+- 修复 Linux 托盘菜单，保留任务栏入口；没有托盘时回退为普通窗口，最小化后可以重新打开。
+- 支持 macOS Dock 唤起面板，修复符号链接和 macOS 路径别名导致项目被误判为不可用的问题。
+- Linux 原生界面只依赖 GTK 3，无需 WebKit；修正跨平台自启说明和退出时的窗口尺寸保存。
+- GitHub Actions 在三个系统的两种架构上执行测试、静态检查、原生构建及启动检查；全部发布构建校验通过后统一发布。
+
+### English
+
+- Publish Windows x64 / ARM64, universal macOS Intel / Apple Silicon, and Linux x64 / ARM64 packages and signed updates.
+- Add standalone Windows and Linux executables without resource sidecars. Versioned standalone downloads use manual replacement through the release page.
+- Fix persistent Linux tray menus and keep the window reachable from the taskbar, including desktops without a tray host.
+- Restore the panel from the macOS Dock and recognize symlinked repository paths, including macOS path aliases.
+- Package the native Linux UI with GTK 3 and no WebKit dependency; fix startup wording and save window dimensions before quitting.
+- Run tests, vet, native builds and startup checks on both architectures of all three systems in GitHub Actions, then publish only after every release target passes verification.
+
 ## 1.3.0
 
 ### 简体中文

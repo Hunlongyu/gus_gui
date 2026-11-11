@@ -367,4 +367,5 @@ FodyWeavers.xsd
 /build/
 /docs/prototype/
 /resources/windows-amd64/GitUserSwitch.exe
+/resources/windows-arm64/GitUserSwitch.exe
 mygo-update.key
