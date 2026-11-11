@@ -29,7 +29,7 @@ func TestProjectDetailsNavigationAndRefresh(t *testing.T) {
 		updateUI: func(f func()) { queue <- f },
 	}
 	v := ui.NewTester(p.view, panelWidth, panelHeight)
-	if _, ok := v.Find("推送平台：GitHub · Gitee"); !ok || v.HasText("git@gitee.com:team/project.git") {
+	if _, ok := v.Find("托管平台：GitHub · Gitee"); !ok || v.HasText("git@gitee.com:team/project.git") {
 		t.Fatal("list should show platform stack without URLs", v.Texts())
 	}
 	settle := func() {
@@ -89,8 +89,8 @@ func TestProjectDetailsNavigationAndRefresh(t *testing.T) {
 		t.Fatal("back button did not return")
 	}
 	// Platform avatars remain part of the row's double-click target.
-	click("推送平台：GitHub · GitLab")
-	click("推送平台：GitHub · GitLab")
+	click("托管平台：GitHub · GitLab")
+	click("托管平台：GitHub · GitLab")
 	settle()
 	if p.page != "project" || p.detailPath != root {
 		t.Fatal("double click on stack did not open details")

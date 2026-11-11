@@ -177,5 +177,5 @@ func (p *application) description(r gitconfig.Project) string {
 	return filepath.Clean(r.Path) + "\n" +
 		p.tr("姓名：") + p.displayValue(r.Current.Name) + " (" + p.displayValue(r.Current.NameScope) + ")\n" +
 		p.tr("邮箱：") + p.displayValue(r.Current.Email) + " (" + p.displayValue(r.Current.EmailScope) + ")\n" +
-		p.tr("推送平台：") + p.pushPlatforms(r) + "\n" + p.tr("双击查看项目详情")
+		p.tr("托管平台：") + p.pushPlatforms(r) + "\n" + p.tr("双击查看项目详情")
 }

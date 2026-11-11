@@ -16,7 +16,7 @@ func (p *application) platformStack(c *ui.Context, r gitconfig.Project) {
 		platforms, summary = nil, p.tr("不可用")
 	}
 	anchor := ui.Box(c.Key("platforms")).Size(56, 26).
-		Label(p.tr("推送平台：") + summary).Description(summary)
+		Label(p.tr("托管平台：") + summary).Description(summary)
 	anchor.Children(func() {
 		if len(platforms) == 0 {
 			icon := minimizeIcon
@@ -40,7 +40,7 @@ func (p *application) platformStack(c *ui.Context, r gitconfig.Project) {
 			Width(220).Padding(12).Radius(8).Background(t.Surface).Border(1, t.Border).
 			Shadow(0, 4, 14, 0, ui.RGBA(0, 0, 0, 0.18)).Children(func() {
 			ui.Column(c).Gap(8).Children(func() {
-				ui.Text(c, p.tr("推送平台")).Bold().FontSize(13).TextColor(t.Text)
+				ui.Text(c, p.tr("托管平台")).Bold().FontSize(13).TextColor(t.Text)
 				for _, platform := range platforms {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 						platformAvatar(c, platform)

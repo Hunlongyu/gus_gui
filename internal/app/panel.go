@@ -88,7 +88,7 @@ func (p *application) view(c *ui.Context) {
 						ui.Text(c, p.tr("仓库")).Width(columns.repo).Shrink(0).FontSize(12).MaxLines(1).Ellipsis("…").TextColor(t.TextMuted)
 						ui.Text(c, p.tr("名字")).Width(columns.name).Shrink(0).FontSize(12).MaxLines(1).Ellipsis("…").TextColor(t.TextMuted)
 						ui.Text(c, p.tr("邮箱")).Grow(1).MinWidth(0).FontSize(12).TextColor(t.TextMuted)
-						ui.Text(c, p.tr("推送")).Width(56).FontSize(12).TextColor(t.TextMuted)
+						ui.Text(c, p.tr("平台")).Width(56).FontSize(12).TextColor(t.TextMuted).Tooltip(p.tr("托管平台"))
 						ui.Text(c, p.tr("来源")).Width(42).FontSize(12).TextAlign(ui.Center).TextColor(t.TextMuted).Label(p.tr("身份来源")).Tooltip(p.tr("身份来源"))
 					})
 					if len(p.projects) == 0 {

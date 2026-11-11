@@ -21,8 +21,9 @@
   <a href="README.md">English</a> · <b>简体中文</b>
 </p>
 
+<!-- 重新生成截图展示外框：go run ./scripts/readme-images -->
 <p align="center">
-  <img src="assets/images/gus-panel.png" width="480" alt="gus 主界面">
+  <img src="assets/images/showcase/gus-panel.svg" width="560" alt="gus 主界面">
 </p>
 
 <details>
@@ -34,14 +35,14 @@
     <th>右键切换项目身份</th>
   </tr>
   <tr>
-    <td><img src="assets/images/gus-accounts.png" width="400" alt="gus 账号管理"></td>
-    <td><img src="assets/images/gus-switch.png" width="400" alt="gus 右键菜单切换身份"></td>
+    <td><img src="assets/images/showcase/gus-accounts.svg" width="460" alt="gus 账号管理"></td>
+    <td><img src="assets/images/showcase/gus-switch.svg" width="460" alt="gus 右键菜单切换身份"></td>
   </tr>
   <tr>
     <th colspan="2">应用设置</th>
   </tr>
   <tr>
-    <td colspan="2" align="center"><img src="assets/images/gus-settings.png" width="400" alt="gus 设置页"></td>
+    <td colspan="2" align="center"><img src="assets/images/showcase/gus-settings.svg" width="460" alt="gus 设置页"></td>
   </tr>
 </table>
 </details>

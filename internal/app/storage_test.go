@@ -100,7 +100,7 @@ func TestProjectCacheRestoresBeforeAnyGitRead(t *testing.T) {
 	if !v.HasText("Tester") || !v.HasText("test@example.org") || !v.HasText("Global") {
 		t.Fatal("first frame did not show cached identities", v.Texts())
 	}
-	if _, ok := v.Find("推送平台：GitGud"); !ok {
+	if _, ok := v.Find("托管平台：GitGud"); !ok {
 		t.Fatal("first frame did not show cached platform")
 	}
 	// Old state files remain valid; cache entries cannot add unlisted projects.

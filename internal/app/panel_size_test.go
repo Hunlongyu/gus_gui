@@ -21,7 +21,7 @@ func TestPanelAtMinimumSize(t *testing.T) {
 				t.Errorf("%s: %q outside minimum panel: %+v", lang, label, r)
 			}
 		}
-		for _, label := range []string{"搜索项目名", "刷新", "账号管理", "设置", "添加目录", "身份来源", "关闭"} {
+		for _, label := range []string{"搜索项目名", "刷新", "账号管理", "设置", "添加目录", "平台", "身份来源", "关闭"} {
 			inside(p.tr(label))
 		}
 		p.beginAccount(-1)

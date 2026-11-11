@@ -51,7 +51,7 @@ func TestProjectColumnsUseExtraWindowWidth(t *testing.T) {
 					t.Fatalf("header/body column mismatch: %s %+v %+v", pair.label, header, pair.cell)
 				}
 			}
-			platforms := find(p.tr("推送平台：") + p.pushPlatforms(p.projects[0]))
+			platforms := find(p.tr("托管平台：") + p.pushPlatforms(p.projects[0]))
 			source := find(p.tr("身份来源") + " · " + p.tr("未设置"))
 			if email.W <= 0 || email.X+email.W > platforms.X || platforms.X+platforms.W > source.X || source.X+source.W > float32(width) {
 				t.Fatalf("columns overlap at width %d", width)
@@ -71,7 +71,7 @@ func TestPlatformStackExpandsOnHover(t *testing.T) {
 		if !v.HasText("+3") || slices.Contains(v.Texts(), "GitHub") {
 			t.Fatal("stack should stay compact", v.Texts())
 		}
-		label := p.tr("推送平台：") + p.pushPlatforms(r)
+		label := p.tr("托管平台：") + p.pushPlatforms(r)
 		bounds, ok := v.Find(label)
 		if !ok || bounds.W > 56 || bounds.X+bounds.W > minPanelWidth {
 			t.Fatalf("stack outside column: %+v", bounds)

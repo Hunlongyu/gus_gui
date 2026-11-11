@@ -17,7 +17,7 @@ var (
 	moreIcon         = lineIcon(`<g fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></g>`)
 	accountIcon      = lineIcon(`<circle cx="12" cy="8" r="3.4"/><path d="M5 20v-1a7 7 0 0 1 14 0v1"/>`)
 	globeIcon        = lineIcon(`<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>`)
-	inheritIcon      = lineIcon(`<path d="M5 4v9a3 3 0 0 0 3 3h12m-5-5 5 5-5 5"/>`)
+	inheritIcon      = lineIcon(`<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`)
 	addDirectoryIcon = lineIcon(`<path d="M3 7V5.5A1.5 1.5 0 0 1 4.5 4H9l2.2 2.5h8.3A1.5 1.5 0 0 1 21 8v10.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M12 10v7m-3.5-3.5h7"/>`)
 	pinIcon          = lineIcon(`<path d="M8 3h8l-1 7 3 4v1H6v-1l3-4zM12 15v6"/>`)
 	minimizeIcon     = lineIcon(`<path d="M5 12h14"/>`)

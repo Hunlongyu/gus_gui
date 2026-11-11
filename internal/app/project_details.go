@@ -83,7 +83,7 @@ func (p *application) projectDetails(c *ui.Context) {
 			return
 		}
 		ui.Column(c).Padding(10).Gap(5).Radius(6).Background(t.Surface.Mix(platformInk(c), 0.07)).Children(func() {
-			ui.Text(c, p.tr("推送平台")).FontSize(12).TextColor(t.TextMuted)
+			ui.Text(c, p.tr("托管平台")).FontSize(12).TextColor(t.TextMuted)
 			ui.Text(c, p.pushPlatforms(r)).Bold().FontSize(16).TextColor(platformInk(c)).Selectable()
 		})
 		ui.Column(c).Padding(10).Gap(7).Radius(6).Background(t.Background).Children(func() {
@@ -108,6 +108,12 @@ func (p *application) projectDetails(c *ui.Context) {
 		for _, remote := range r.Remotes {
 			ui.Column(c.Key(remote.Name)).Padding(10).Gap(6).Radius(6).Border(1, t.Border).Children(func() {
 				ui.Text(c, remote.Name).Bold().Selectable()
+				if slices.Equal(remote.FetchURLs, remote.PushURLs) {
+					for _, address := range remote.FetchURLs {
+						p.remoteAddress(c, "", address)
+					}
+					return
+				}
 				for _, address := range remote.FetchURLs {
 					p.remoteAddress(c, "拉取", address)
 				}
@@ -128,7 +134,11 @@ func (p *application) detailField(c *ui.Context, label, value string) {
 
 func (p *application) remoteAddress(c *ui.Context, kind, address string) {
 	ui.Column(c).Gap(2).Children(func() {
-		ui.Text(c, p.tr(kind)+" · "+p.tr(gitconfig.RemotePlatform(address))).FontSize(12).TextColor(c.Theme().TextMuted)
+		label := p.tr(gitconfig.RemotePlatform(address))
+		if kind != "" {
+			label = p.tr(kind) + " · " + label
+		}
+		ui.Text(c, label).FontSize(12).TextColor(c.Theme().TextMuted)
 		if webURL := gitconfig.RemoteWebURL(address); webURL != "" {
 			ui.Link(c, address, webURL).FontSize(13).TextColor(platformInk(c)).Tooltip(p.tr("在浏览器中打开") + "\n" + webURL)
 		} else {

@@ -21,8 +21,9 @@
   <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
+<!-- Regenerate screenshot frames: go run ./scripts/readme-images -->
 <p align="center">
-  <img src="assets/images/gus-panel-en.png" width="480" alt="gus Main Interface">
+  <img src="assets/images/showcase/gus-panel-en.svg" width="560" alt="gus Main Interface">
 </p>
 
 <details>
@@ -34,14 +35,14 @@
     <th>Right-Click Identity Switch</th>
   </tr>
   <tr>
-    <td><img src="assets/images/gus-accounts-en.png" width="400" alt="gus Accounts"></td>
-    <td><img src="assets/images/gus-switch-en.png" width="400" alt="gus Identity Switch Menu"></td>
+    <td><img src="assets/images/showcase/gus-accounts-en.svg" width="460" alt="gus Accounts"></td>
+    <td><img src="assets/images/showcase/gus-switch-en.svg" width="460" alt="gus Identity Switch Menu"></td>
   </tr>
   <tr>
     <th colspan="2">Settings</th>
   </tr>
   <tr>
-    <td colspan="2" align="center"><img src="assets/images/gus-settings-en.png" width="400" alt="gus Settings"></td>
+    <td colspan="2" align="center"><img src="assets/images/showcase/gus-settings-en.svg" width="460" alt="gus Settings"></td>
   </tr>
 </table>
 </details>
