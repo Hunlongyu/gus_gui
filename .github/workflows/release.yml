@@ -60,7 +60,7 @@ jobs:
         env:
           GUS_VERIFY_RELEASE: '1'
           GUS_RELEASE_PLATFORM: ${{ matrix.target }}
-        run: go test -count=1 -run '^TestSignedReleaseArchive$' .
+        run: go test -count=1 -run '^TestSignedReleaseArchive$' ./tests/packaging
       - name: Smoke test release application
         if: runner.os != 'Linux'
         run: ./.github/scripts/smoke.ps1 -Platform '${{ matrix.target }}' -BuildRoot build

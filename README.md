@@ -128,7 +128,30 @@ git config --show-scope --show-origin --get user.email
 
 ## 从源码构建
 
-当前版本使用 **Go + MyGo Native UI**，Go 工具链版本见 [go.mod](go.mod)。仓库中的 Visual Studio 工程和 C++ 源码为早期实现。
+当前版本使用 **Go + MyGo Native UI**，Go 工具链版本见 [go.mod](go.mod)。
+
+### 源码组织
+
+项目按 [Go 官方模块布局建议](https://go.dev/doc/modules/layout) 将内部实现按职责拆包。根目录只保留薄入口 `main.go`，负责嵌入图标、更新日志并启动应用，因此现有 `go run .` 和 MyGo 构建命令仍然可用。
+
+```text
+main.go                 应用入口与根目录资源嵌入
+cmd/legacy-launcher/    旧版 Windows 安装的兼容启动器
+internal/
+  app/                 桌面 UI、账号和项目交互、托盘、设置与更新
+  gitconfig/           Git 命令、身份切换、仓库快照与远程地址解析
+  identity/            已保存账号、实际生效身份及作用域规则
+  state/               JSON 持久化、偏好设置和窗口尺寸
+  pathutil/            跨平台路径与目录别名比较
+assets/                内嵌平台图标与 README 截图
+resources/             应用图标及打包资源
+tests/packaging/       发布归档与签名校验
+.github/               CI、打包与启动检查脚本
+```
+
+新增代码放入对应职责的包，测试与被测代码放在同一目录；涉及 UI 和存储、Git 协作的测试放在 `internal/app`。`app` 调用底层包，底层包不依赖 UI 或 MyGo；Windows 专用代码保留 `_windows.go` 文件名，其他平台实现使用构建约束。`internal` 中的包只供本项目使用，暂不建立对外的 `pkg` 库。
+
+### 构建与验证
 
 ```powershell
 git clone https://github.com/Hunlongyu/gus_gui.git
