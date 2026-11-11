@@ -1,5 +1,25 @@
 # 更新日志
 
+## 1.5.0
+
+### 简体中文
+
+- 启用全新红色透明 G 标志，融合 Git 分支、用户身份和切换箭头；Windows 托盘图标按屏幕缩放比例生成，减少小尺寸模糊。
+- 缓存项目姓名、邮箱、配置来源、分支、远程地址和全局身份，重启先显示上次属性，再在后台刷新。
+- 最多并发刷新 8 个项目，项目内部的身份、分支和远程信息并行读取；每个项目完成后立即更新有变化的属性。
+- 刷新保留列表滚动位置；读取失败时保留上次属性并显示错误状态。
+- 主面板新增刷新按钮，后台每小时自动刷新，隐藏到托盘后仍然生效。
+- 修复 GitGud SSH 域名的平台识别和网页跳转；新增 Gitea、Forgejo、SourceHut、SourceForge、Launchpad、CODING 和 Codeup 平台标识，并更新继承身份图标。
+
+### English
+
+- Introduce a transparent red G logo combining Git branches, user identity and switching. Render the Windows tray icon at the display scale to reduce blur at small sizes.
+- Cache project names, emails, configuration scopes, branches, remotes and the global identity. Show the saved properties immediately on startup, then refresh in the background.
+- Refresh up to eight projects concurrently and read each project's identity, branch and remotes in parallel. Apply changed results as each project completes.
+- Preserve list scrolling during refreshes. Keep the last known properties with error indicators when a read fails.
+- Add a refresh button to the main panel and refresh automatically every hour, including while hidden in the tray.
+- Recognize GitGud's SSH host and open the correct repository web URL. Add Gitea, Forgejo, SourceHut, SourceForge, Launchpad, CODING and Codeup badges, and update the inherited-identity icon.
+
 ## 1.4.0
 
 ### 简体中文

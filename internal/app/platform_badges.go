@@ -79,6 +79,20 @@ func platformAvatar(c *ui.Context, name string) ui.Element {
 		fill, icon = ui.RGB(210, 69, 57), gitcodeIcon
 	case "Azure DevOps":
 		fill, icon = ui.RGB(25, 119, 192), azureDevopsIcon
+	case "Gitea":
+		fill, icon = ui.RGB(75, 132, 42), giteaIcon
+	case "Forgejo":
+		fill, icon = ui.RGB(168, 84, 30), forgejoIcon
+	case "SourceHut":
+		fill, icon = ui.RGB(40, 45, 55), sourcehutIcon
+	case "SourceForge":
+		fill, icon = ui.RGB(201, 83, 0), sourceforgeIcon
+	case "Launchpad":
+		fill, icon = ui.RGB(139, 98, 12), launchpadIcon
+	case "CODING":
+		fill, icon = ui.RGB(50, 54, 63), codingIcon
+	case "Codeup":
+		fill, icon = ui.RGB(212, 77, 0), codeupIcon
 	case "本地路径":
 		icon = folderIcon
 	default:

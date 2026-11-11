@@ -98,6 +98,7 @@ var english = map[string]string{
 	"拉取":          "Fetch",
 	"推送":          "Push",
 	"刷新":          "Refresh",
+	"刷新项目属性":      "Refresh project properties",
 	"读取中…":        "Loading…",
 	"项目已移出列表":     "Project removed from list",
 	"查看更新 · ":     "View update · ",

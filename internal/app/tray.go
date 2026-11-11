@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"image"
 	"image/png"
+	"math"
 	"runtime"
 	"time"
 
@@ -11,14 +12,25 @@ import (
 	"golang.org/x/image/draw"
 )
 
-func trayIcon(appIcon []byte) []byte {
+func trayIconSize() int {
+	if runtime.GOOS == "windows" {
+		// Render directly at the taskbar's pixel size instead of having Windows
+		// shrink a 64px icon again, which blurs small details at 100–150% scaling.
+		return max(16, int(math.Round(16*mygo.Screen.PrimaryDisplay().ScaleFactor)))
+	}
+	if runtime.GOOS == "darwin" {
+		return 32 // 16 points at Retina resolution.
+	}
+	return 64 // Linux panels choose their own icon size.
+}
+
+func trayIcon(appIcon []byte, size int) []byte {
 	src, err := png.Decode(bytes.NewReader(appIcon))
 	if err != nil {
 		panic(err)
 	}
-	// Downsample the original before handing it to the notification area.
-	// 64 pixels also covers high-DPI taskbars without a large native bitmap.
-	img := image.NewRGBA(image.Rect(0, 0, 64, 64))
+	// Resize once from the source, retaining the transparent background.
+	img := image.NewRGBA(image.Rect(0, 0, size, size))
 	draw.CatmullRom.Scale(img, img.Bounds(), src, src.Bounds(), draw.Src, nil)
 	var out bytes.Buffer
 	if err := png.Encode(&out, img); err != nil {

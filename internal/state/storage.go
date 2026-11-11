@@ -8,16 +8,19 @@ import (
 	"os"
 	"path/filepath"
 
+	"gus/internal/gitconfig"
 	"gus/internal/identity"
 	"gus/internal/pathutil"
 )
 
 type Data struct {
-	Preferences Preferences        `json:"preferences,omitempty"`
-	WindowSize  WindowSize         `json:"windowSize,omitzero"`
-	Version     int                `json:"version"`
-	Accounts    []identity.Account `json:"accounts"`
-	Directories []string           `json:"directories"`
+	Preferences  Preferences         `json:"preferences,omitempty"`
+	WindowSize   WindowSize          `json:"windowSize,omitzero"`
+	Version      int                 `json:"version"`
+	Accounts     []identity.Account  `json:"accounts"`
+	Directories  []string            `json:"directories"`
+	ProjectCache []gitconfig.Project `json:"projectCache,omitempty"`
+	Global       identity.Resolved   `json:"global,omitzero"`
 }
 
 func Path() (string, error) {

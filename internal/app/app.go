@@ -51,6 +51,9 @@ type application struct {
 	pendingToasts                                []ui.Toast
 	windowSize                                   state.WindowSize
 	resizeTimer                                  *time.Timer
+	refreshTimer                                 *time.Timer
+	refreshing, cacheDirty, quitting             bool
+	projectScroll                                ui.ScrollState
 }
 
 // Run starts the desktop application with the embedded icon and release notes.
@@ -91,6 +94,7 @@ func Run(appIcon []byte, releaseHistory string) {
 			return
 		}
 		p.savePanelSize()
+		p.saveProjectCache()
 	})
 	p.restore()
 	mygo.App.SetLanguages("zh-CN", "en")
@@ -108,7 +112,7 @@ func Run(appIcon []byte, releaseHistory string) {
 
 	mygo.App.WhenReady(func() {
 		var err error
-		p.tray, err = mygo.NewTray(mygo.TrayOptions{Icon: trayIcon(appIcon), ToolTip: appName})
+		p.tray, err = mygo.NewTray(mygo.TrayOptions{Icon: trayIcon(appIcon, trayIconSize()), ToolTip: appName})
 		if err != nil {
 			// A missing tray must not prevent access to accounts and projects.
 			log.Printf("tray unavailable; using a regular window: %v", err)
@@ -123,6 +127,8 @@ func Run(appIcon []byte, releaseHistory string) {
 			log.Fatal("window icon: ", err)
 		}
 		p.updateUI = p.win.Update
+		p.refresh()
+		p.scheduleRefresh(projectRefreshInterval)
 		p.trackPanelSize()
 		guard.watch(func() { p.updateUI(p.show) })
 		if mygo.Updater.Enabled() {
@@ -162,6 +168,10 @@ func Run(appIcon []byte, releaseHistory string) {
 			}
 		}
 		mygo.App.OnWillQuit(func(*mygo.QuitEvent) {
+			p.quitting = true
+			if p.refreshTimer != nil {
+				p.refreshTimer.Stop()
+			}
 			if p.tray != nil {
 				p.tray.Destroy()
 			}

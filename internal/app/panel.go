@@ -73,7 +73,12 @@ func (p *application) view(c *ui.Context) {
 					ui.Row(c).Gap(5).AlignItems(ui.Center).Children(func() {
 						ui.Text(c, p.tr("项目")).Bold().FontSize(16)
 						ui.Text(c, count).Grow(1).FontSize(13).TextColor(t.TextMuted)
-						ui.SearchField(c.Key("project-search"), &p.projectQuery).Width(168).Height(26).Label(p.tr("搜索项目名")).Placeholder(p.tr("搜索项目名"))
+						ui.SearchField(c.Key("project-search"), &p.projectQuery).Width(148).MinWidth(80).Height(26).Label(p.tr("搜索项目名")).Placeholder(p.tr("搜索项目名"))
+						refreshHint := p.tr("刷新项目属性")
+						if p.refreshing {
+							refreshHint = p.tr("读取中…")
+						}
+						withIcon(c, ui.Button(c.Key("refresh-projects"), ""), refreshIcon, p.tr("刷新"), refreshHint).Disabled(p.busy).OnClick(p.refresh)
 						withIcon(c, ui.Button(c, ""), accountIcon, p.tr("账号管理"), p.tr("账号管理")).OnClick(func() { p.page = "accounts" })
 						withIcon(c, ui.Button(c, ""), settingsIcon, p.tr("设置"), p.tr("应用设置")).OnClick(func() { p.page = "settings" })
 						withIcon(c, ui.Button(c, ""), addDirectoryIcon, p.tr("添加目录"), p.tr("添加项目目录")).Disabled(p.busy).OnClick(p.pickDirectories)
@@ -91,7 +96,7 @@ func (p *application) view(c *ui.Context) {
 					} else if len(visible) == 0 {
 						ui.Text(c, p.tr("没有匹配的项目")).TextColor(t.TextMuted).Padding(12, 8)
 					}
-					ui.Scroll(c.Key("projects")).Grow(1).Children(func() {
+					ui.Scroll(c.Key("projects")).TrackScroll(&p.projectScroll).Grow(1).Children(func() {
 						for _, r := range visible {
 							p.projectRow(c, r, columns)
 						}

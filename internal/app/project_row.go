@@ -34,7 +34,7 @@ func (p *application) sourceMark(c *ui.Context, r gitconfig.Project) {
 	icon, ink := minimizeIcon, t.TextMuted
 	switch source {
 	case "继承":
-		icon, ink = globeIcon, ui.RGB(41, 108, 77)
+		icon, ink = inheritIcon, ui.RGB(41, 108, 77)
 	case "专用":
 		icon, ink = folderIcon, ui.RGB(110, 82, 166)
 	case "混合":

@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/egoist/mygo"
 
@@ -32,8 +31,17 @@ func (p *application) restore() {
 	p.accounts = data.Accounts
 	p.preferences = data.Preferences.Normalized()
 	p.windowSize = data.WindowSize
+	p.global = data.Global
 	for _, path := range data.Directories {
-		p.projects = append(p.projects, gitconfig.Project{Path: path})
+		row := gitconfig.Project{Path: path}
+		for _, cached := range data.ProjectCache {
+			if pathutil.Same(cached.Path, path) {
+				row = cached
+				row.Path = path
+				break
+			}
+		}
+		p.projects = append(p.projects, row)
 	}
 }
 
@@ -41,7 +49,8 @@ func (p *application) persist(accounts []identity.Account, projects []gitconfig.
 	if p.storageError != "" {
 		return errors.New(p.storageError)
 	}
-	data := state.Data{Accounts: accounts, Preferences: p.preferences, WindowSize: p.windowSize}
+	data := state.Data{Accounts: accounts, Preferences: p.preferences, WindowSize: p.windowSize,
+		ProjectCache: projects, Global: p.global}
 	for _, r := range projects {
 		data.Directories = append(data.Directories, r.Path)
 	}
@@ -49,6 +58,7 @@ func (p *application) persist(accounts []identity.Account, projects []gitconfig.
 		return fmt.Errorf(p.tr("保存失败：%w"), err)
 	}
 	p.accounts, p.projects = accounts, projects
+	p.cacheDirty = false
 	return nil
 }
 
@@ -126,45 +136,6 @@ func (p *application) importDirectories(paths []string) {
 			}
 			p.setNotice(strings.Join(issues, "\n"))
 			p.refresh()
-		})
-	}()
-}
-
-// Disk access and Git subprocesses stay off the MyGo UI thread. Serialise
-// mutations with scans so an older scan cannot overwrite a switch or removal.
-func (p *application) refresh() {
-	if p.busy {
-		return
-	}
-	p.busy = true
-	rows := slices.Clone(p.projects)
-	go func() {
-		global, err := gitconfig.ReadIdentity("")
-		var wg sync.WaitGroup
-		jobs := make(chan int)
-		for range min(4, len(rows)) {
-			wg.Go(func() {
-				for i := range jobs {
-					rows[i] = gitconfig.InspectProject(rows[i].Path)
-				}
-			})
-		}
-		for i := range rows {
-			jobs <- i
-		}
-		close(jobs)
-		wg.Wait()
-		p.updateUI(func() {
-			p.global, p.projects, p.busy = global, rows, false
-			previousError := p.globalError
-			p.globalError = ""
-			if err != nil {
-				p.globalError = fmt.Sprintf(p.tr("读取全局身份失败：%v"), err)
-				if p.globalError != previousError {
-					p.notifyError(p.globalError)
-				}
-			}
-			p.importDirectories(nil)
 		})
 	}()
 }

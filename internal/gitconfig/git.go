@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"gus/internal/identity"
@@ -104,28 +105,51 @@ func ReadIdentity(dir string) (identity.Resolved, error) {
 }
 
 func InspectProject(path string) Project {
-	r := inspectProjectIdentity(path)
-	if r.Problem != "" {
+	r := Project{Path: path}
+	root, err := projectRoot(path)
+	if err != nil {
+		r.Problem = err.Error()
 		return r
 	}
-	var err error
-	r.Remotes, err = readRemotes(path)
-	if err != nil {
-		r.RemoteError = err.Error()
-	}
-	r.Branch, r.Detached, err = readBranch(path)
-	if err != nil {
-		r.BranchError = err.Error()
-	}
+	// These independent, local reads can overlap. Each goroutine owns distinct
+	// fields, and the application bounds the number of concurrent projects.
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		var err error
+		r.Current, err = ReadIdentity(root)
+		if err != nil {
+			r.Problem = err.Error()
+		}
+	})
+	wg.Go(func() {
+		var err error
+		r.Remotes, err = readRemotes(root)
+		if err != nil {
+			r.RemoteError = err.Error()
+		}
+	})
+	wg.Go(func() {
+		var err error
+		r.Branch, r.Detached, err = readBranch(root)
+		if err != nil {
+			r.BranchError = err.Error()
+		}
+	})
+	wg.Wait()
 	return r
 }
 
-func inspectProjectIdentity(path string) Project {
-	r := Project{Path: path}
+func projectRoot(path string) (string, error) {
 	root, err := RepositoryRoot(path)
 	if err == nil && !pathutil.Same(path, root) {
 		err = fmt.Errorf("该目录已不再是仓库根目录")
 	}
+	return root, err
+}
+
+func inspectProjectIdentity(path string) Project {
+	r := Project{Path: path}
+	root, err := projectRoot(path)
 	if err == nil {
 		r.Current, err = ReadIdentity(root)
 	}

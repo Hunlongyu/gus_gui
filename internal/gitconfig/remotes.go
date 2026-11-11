@@ -128,15 +128,37 @@ func RemotePlatform(raw string) string {
 		return "Bitbucket"
 	case "codeberg.org":
 		return "Codeberg"
-	case "gitgud.io", "www.gitgud.io":
+	case "gitgud.io", "www.gitgud.io", "ssh.gitgud.io":
 		return "GitGud"
 	case "gitcode.com":
 		return "GitCode"
 	case "dev.azure.com", "ssh.dev.azure.com":
 		return "Azure DevOps"
+	case "gitea.com":
+		return "Gitea"
+	case "code.forgejo.org":
+		return "Forgejo"
+	case "git.sr.ht":
+		return "SourceHut"
+	case "git.code.sf.net", "sourceforge.net":
+		return "SourceForge"
+	case "git.launchpad.net", "launchpad.net":
+		return "Launchpad"
+	case "coding.net":
+		return "CODING"
+	case "codeup.aliyun.com", "code.aliyun.com":
+		return "Codeup"
 	case "":
 		return "未知平台"
 	default:
+		// These services use team-specific domains. Keep the leading dot so
+		// lookalike domains do not receive a trusted platform's badge.
+		if strings.HasSuffix(host, ".coding.net") {
+			return "CODING"
+		}
+		if strings.HasSuffix(host, ".devops.aliyuncs.com") {
+			return "Codeup"
+		}
 		return host
 	}
 }
@@ -174,6 +196,8 @@ func RemoteWebURL(raw string) string {
 			host = "gitlab.com"
 		case "altssh.bitbucket.org":
 			host = "bitbucket.org"
+		case "ssh.gitgud.io":
+			host = "gitgud.io"
 		case "ssh.dev.azure.com":
 			parts := strings.Split(strings.Trim(u.Path, "/"), "/")
 			if len(parts) != 4 || parts[0] != "v3" {

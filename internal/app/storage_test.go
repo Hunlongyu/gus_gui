@@ -3,11 +3,13 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
 
 	"gus/internal/gitconfig"
+	"gus/internal/identity"
 	"gus/internal/state"
 )
 
@@ -72,5 +74,50 @@ func TestSavedAccountsAndDirectoriesAfterRestart(t *testing.T) {
 	broken.restore()
 	if broken.storageError == "" || broken.persist(nil, nil) == nil {
 		t.Fatal("overwrote damaged data")
+	}
+}
+
+func TestProjectCacheRestoresBeforeAnyGitRead(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("APPDATA", dir)
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("HOME", dir)
+	p := &application{}
+	p.restore()
+	root := filepath.Join(dir, "cached-project")
+	row := gitconfig.Project{Path: root, Current: identity.Resolved{Name: "Tester", Email: "test@example.org", NameScope: "global", EmailScope: "local"},
+		Branch: "feature", Detached: true, Remotes: []gitconfig.Remote{{Name: "origin", FetchURLs: []string{"https://gitgud.io/team/repo.git"}, PushURLs: []string{"git@ssh.gitgud.io:team/repo.git"}}}}
+	p.global = identity.Resolved{Name: "Global", Email: "global@example.org", NameScope: "global", EmailScope: "global"}
+	if err := p.persist(nil, []gitconfig.Project{row}); err != nil {
+		t.Fatal(err)
+	}
+	reopened := &application{}
+	reopened.restore()
+	if reopened.storageError != "" || !reflect.DeepEqual(reopened.projects, []gitconfig.Project{row}) || reopened.global != p.global {
+		t.Fatal("cached attributes were not restored", reopened)
+	}
+	v := ui.NewTester(reopened.view, panelWidth, panelHeight)
+	if !v.HasText("Tester") || !v.HasText("test@example.org") || !v.HasText("Global") {
+		t.Fatal("first frame did not show cached identities", v.Texts())
+	}
+	if _, ok := v.Find("推送平台：GitGud"); !ok {
+		t.Fatal("first frame did not show cached platform")
+	}
+	// Old state files remain valid; cache entries cannot add unlisted projects.
+	if err := state.Store(p.stateFile, state.Data{Directories: []string{root}, ProjectCache: []gitconfig.Project{{Path: filepath.Join(dir, "removed")}}}); err != nil {
+		t.Fatal(err)
+	}
+	legacy := &application{}
+	legacy.restore()
+	if legacy.storageError != "" || len(legacy.projects) != 1 || legacy.projects[0].Path != root || legacy.projects[0].Current.Name != "" {
+		t.Fatal("cache changed the authoritative directory list")
+	}
+	if err := state.Store(p.stateFile, state.Data{Directories: []string{root}}); err != nil {
+		t.Fatal(err)
+	}
+	legacy = &application{}
+	legacy.restore()
+	if legacy.storageError != "" || len(legacy.projects) != 1 || legacy.projects[0].Path != root {
+		t.Fatal("old directory-only state failed to restore")
 	}
 }
