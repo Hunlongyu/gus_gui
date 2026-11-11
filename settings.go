@@ -14,6 +14,13 @@ import (
 //go:embed CHANGELOG.md
 var releaseHistory string
 
+const (
+	appDeveloper     = "Hunlongyu"
+	appDeveloperURL  = "https://github.com/" + appDeveloper
+	appRepositoryURL = appDeveloperURL + "/gus_gui"
+	appFeedbackURL   = appRepositoryURL + "/issues"
+)
+
 func (p *application) notes(markdown string) string {
 	var lines []string
 	visible := true
@@ -87,6 +94,11 @@ func (p *application) appSettings(c *ui.Context) {
 			ui.Text(c, p.tr("关于")).FontSize(12).TextColor(t.TextMuted)
 			ui.Text(c, appName).Bold().FontSize(16)
 			ui.Text(c, p.tr("管理全局和项目的 Git 提交身份。")).FontSize(13).TextColor(t.TextMuted)
+			ui.Row(c).Gap(16).Children(func() {
+				ui.Link(c, p.tr("开发者"), appDeveloperURL).FontSize(12).TextColor(platformInk(c))
+				ui.Link(c, p.tr("仓库地址"), appRepositoryURL).FontSize(12).TextColor(platformInk(c))
+				ui.Link(c, p.tr("反馈地址"), appFeedbackURL).FontSize(12).TextColor(platformInk(c))
+			})
 		})
 	})
 }
@@ -114,6 +126,10 @@ func (p *application) checkUpdates() {
 			case update != nil:
 				p.availableUpdate = update
 				p.updateStatus, p.updateDetail = "发现新版本 ", update.Version
+				p.pendingToasts = append(p.pendingToasts, ui.Toast{
+					ID: "available-update", Title: p.tr("发现新版本 ") + update.Version,
+					Action: p.tr("查看更新"), OnAction: func() { p.page = "settings" }, Timeout: 8 * time.Second,
+				})
 			default:
 				p.availableUpdate = nil
 				p.updateStatus, p.updateDetail = "已是最新版本。", ""

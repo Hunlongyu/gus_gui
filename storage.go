@@ -17,6 +17,7 @@ type identity struct {
 }
 type savedData struct {
 	Preferences preferences `json:"preferences,omitempty"`
+	WindowSize  panelSize   `json:"windowSize,omitzero"`
 	Version     int         `json:"version"`
 	Accounts    []identity  `json:"accounts"`
 	Directories []string    `json:"directories"`

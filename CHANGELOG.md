@@ -1,5 +1,27 @@
 # 更新日志
 
+## 1.3.0
+
+### 简体中文
+
+- 项目列表支持多个远程仓库和推送地址，以堆叠平台图标显示，悬浮可查看完整平台列表。
+- 双击项目可查看账号、分支及拉取和推送地址，支持用默认浏览器打开仓库链接。
+- 账号管理新增“设为全局”按钮，设置成功后显示“全局默认”。
+- 列宽根据内容和窗口宽度自动分配；窗口尺寸在调整后自动保存，重启后恢复。
+- 主面板操作提示改为悬浮通知；“提交姓名”统一改为“名字”，移除名字和邮箱各自的悬浮提示。
+- “关于”新增开发者、仓库和反馈文字链接。
+- 补全托管平台图标，去除应用图标外圈透明留白，并在 Windows 构建中嵌入多尺寸图标。
+
+### English
+
+- Show multiple Git remotes and push destinations as stacked platform icons, with a full platform list on hover.
+- Double-click a project to inspect its account, branch, fetch URLs and push URLs, and open repository links in the default browser.
+- Set a saved account as the global Git identity directly from Accounts, with a Global default indicator.
+- Allocate column widths according to their content and window width. Save window dimensions after resizing and restore them on restart.
+- Show main-panel operation feedback as floating notifications. Rename Git name to Name and remove separate name and email tooltips.
+- Add developer, repository and feedback text links to About.
+- Complete hosting-platform icons, remove excess transparent padding from the app icon and embed multiple Windows icon sizes in builds.
+
 ## 1.2.3
 
 ### 简体中文

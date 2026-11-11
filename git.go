@@ -114,6 +114,23 @@ func readIdentity(dir string) (gitIdentity, error) {
 }
 
 func inspectProject(path string) project {
+	r := inspectProjectIdentity(path)
+	if r.problem != "" {
+		return r
+	}
+	var err error
+	r.remotes, err = readRemotes(path)
+	if err != nil {
+		r.remoteError = err.Error()
+	}
+	r.branch, r.detached, err = readBranch(path)
+	if err != nil {
+		r.branchError = err.Error()
+	}
+	return r
+}
+
+func inspectProjectIdentity(path string) project {
 	r := project{path: path}
 	root, err := repositoryRoot(path)
 	if err == nil && !samePath(path, root) {
@@ -255,7 +272,7 @@ func switchIdentity(dir string, a *identity) error {
 		}
 		config, err = globalConfigPath()
 	} else {
-		r := inspectProject(dir)
+		r := inspectProjectIdentity(dir)
 		if r.problem != "" {
 			return errors.New(r.problem)
 		}

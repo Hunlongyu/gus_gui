@@ -13,9 +13,14 @@ import (
 )
 
 type project struct {
-	path    string
-	current gitIdentity
-	problem string
+	path        string
+	current     gitIdentity
+	problem     string
+	remotes     []gitRemote
+	remoteError string
+	branch      string
+	detached    bool
+	branchError string
 }
 
 func (p *application) restore() {
@@ -27,10 +32,12 @@ func (p *application) restore() {
 	}
 	if err != nil {
 		p.storageError = fmt.Sprintf(p.tr("无法读取 %s：%v"), p.stateFile, err)
+		p.notifyError(p.storageError)
 		return
 	}
 	p.accounts = data.Accounts
 	p.preferences = data.Preferences.normalized()
+	p.windowSize = data.WindowSize
 	for _, path := range data.Directories {
 		p.projects = append(p.projects, project{path: path})
 	}
@@ -40,7 +47,7 @@ func (p *application) persist(accounts []identity, projects []project) error {
 	if p.storageError != "" {
 		return errors.New(p.storageError)
 	}
-	data := savedData{Accounts: accounts, Preferences: p.preferences}
+	data := savedData{Accounts: accounts, Preferences: p.preferences, WindowSize: p.windowSize}
 	for _, r := range projects {
 		data.Directories = append(data.Directories, r.path)
 	}
@@ -67,7 +74,7 @@ func (p *application) addRoots(roots []string) error {
 func (p *application) removeDirectory(path string) {
 	list := slices.DeleteFunc(slices.Clone(p.projects), func(r project) bool { return samePath(r.path, path) })
 	if err := p.persist(p.accounts, list); err != nil {
-		p.notice = err.Error()
+		p.setNotice(err.Error())
 	}
 }
 
@@ -82,7 +89,7 @@ func (p *application) pickDirectories() {
 		p.updateUI(func() {
 			p.picking, p.busy = false, false
 			if err != nil {
-				p.notice = err.Error()
+				p.setNotice(err.Error())
 			}
 			p.importDirectories(paths)
 		})
@@ -123,7 +130,7 @@ func (p *application) importDirectories(paths []string) {
 			if err := p.addRoots(roots); err != nil {
 				issues = append(issues, err.Error())
 			}
-			p.notice = strings.Join(issues, "\n")
+			p.setNotice(strings.Join(issues, "\n"))
 			p.refresh()
 		})
 	}()
@@ -155,9 +162,13 @@ func (p *application) refresh() {
 		wg.Wait()
 		p.updateUI(func() {
 			p.global, p.projects, p.busy = global, rows, false
+			previousError := p.globalError
 			p.globalError = ""
 			if err != nil {
 				p.globalError = fmt.Sprintf(p.tr("读取全局身份失败：%v"), err)
+				if p.globalError != previousError {
+					p.notifyError(p.globalError)
+				}
 			}
 			p.importDirectories(nil)
 		})
@@ -178,9 +189,9 @@ func (p *application) applyIdentity(path string, account *identity) {
 				return
 			}
 			p.quitAfterWrite = false
-			p.notice = ""
+			p.setNotice("")
 			if err != nil {
-				p.notice = p.tr("切换失败或未完全生效：") + err.Error()
+				p.setNotice(p.tr("切换失败或未完全生效：") + err.Error())
 			}
 			p.refresh()
 		})
@@ -198,5 +209,8 @@ func (p *application) description(r project) string {
 	if r.problem != "" {
 		return r.path + "\n" + r.problem
 	}
-	return filepath.Clean(r.path) + "\n" + p.tr("姓名：") + p.displayValue(r.current.NameScope) + "\n" + p.tr("邮箱：") + p.displayValue(r.current.EmailScope)
+	return filepath.Clean(r.path) + "\n" +
+		p.tr("姓名：") + p.displayValue(r.current.Name) + " (" + p.displayValue(r.current.NameScope) + ")\n" +
+		p.tr("邮箱：") + p.displayValue(r.current.Email) + " (" + p.displayValue(r.current.EmailScope) + ")\n" +
+		p.tr("推送平台：") + p.pushPlatforms(r) + "\n" + p.tr("双击查看项目详情")
 }

@@ -27,7 +27,7 @@ func TestSavedAccountsAndDirectoriesAfterRestart(t *testing.T) {
 	}
 	click("账号管理")
 	click("＋ 新增账号")
-	for _, field := range []struct{ key, value string }{{"账号标签", "个人"}, {"提交姓名", "Tester"}, {"邮箱", "tester@example.org"}} {
+	for _, field := range []struct{ key, value string }{{"账号标签", "个人"}, {"名字", "Tester"}, {"邮箱", "tester@example.org"}} {
 		click(field.key)
 		v.Type(field.value)
 	}

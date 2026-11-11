@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"image"
-	"image/color"
 	"image/png"
 	"log"
 	"net/mail"
@@ -16,11 +16,17 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+	"golang.org/x/image/draw"
 )
 
 const panelWidth, panelHeight = 480, 490
 const appName = "gus"
 const minPanelWidth, minPanelHeight = 440, 320
+
+// appIcon is also used by MyGo to embed the executable's Windows icons.
+//
+//go:embed resources/icon.png
+var appIcon []byte
 
 type application struct {
 	preferences                                  preferences
@@ -47,7 +53,11 @@ type application struct {
 	projects                                     []project
 	pendingDirectories                           []string
 	projectQuery                                 string
+	detailPath                                   string
 	page                                         string
+	pendingToasts                                []ui.Toast
+	windowSize                                   panelSize
+	resizeTimer                                  *time.Timer
 }
 
 func (p *application) view(c *ui.Context) {
@@ -74,6 +84,7 @@ func (p *application) view(c *ui.Context) {
 	}
 	t := panelTheme(base)
 	c.SetTheme(&t)
+	p.showNotifications(c)
 	ui.Column(c).Fill().Padding(4).Background(t.Background).Children(func() {
 		panel := ui.Column(c).Grow(1).Radius(8).Background(t.Surface).Border(1, t.Border)
 		if p.page == "" && !p.installingUpdate {
@@ -87,11 +98,6 @@ func (p *application) view(c *ui.Context) {
 		panel.Children(func() {
 			p.toolbar(c)
 			ui.Column(c).Grow(1).Padding(12).Gap(6).Children(func() {
-				for _, msg := range []string{p.storageError, p.globalError, p.notice} {
-					if msg != "" {
-						ui.Text(c, msg).MaxLines(2).Ellipsis("…").Tooltip(msg).FontSize(12).TextColor(t.Danger)
-					}
-				}
 				switch p.page {
 				case "accounts":
 					p.accountList(c)
@@ -101,10 +107,9 @@ func (p *application) view(c *ui.Context) {
 					p.changelogView(c)
 				case "account":
 					p.accountForm(c)
+				case "project":
+					p.projectDetails(c)
 				default:
-					if p.availableUpdate != nil {
-						ui.Button(c, p.tr("查看更新 · ")+p.availableUpdate.Version).OnClick(func() { p.page = "settings" })
-					}
 					visible := p.projects
 					count := strconv.Itoa(len(p.projects))
 					if query := strings.ToLower(strings.TrimSpace(p.projectQuery)); query != "" {
@@ -124,11 +129,13 @@ func (p *application) view(c *ui.Context) {
 						withIcon(c, ui.Button(c, ""), settingsIcon, p.tr("设置"), p.tr("应用设置")).OnClick(func() { p.page = "settings" })
 						withIcon(c, ui.Button(c, ""), addDirectoryIcon, p.tr("添加目录"), p.tr("添加项目目录")).Disabled(p.busy).OnClick(p.pickDirectories)
 					})
-					ui.Row(c).Padding(5, 12, 5, 8).Gap(10).Background(t.Background).Radius(4).Children(func() {
-						ui.Text(c, p.tr("仓库")).Width(95).FontSize(12).TextColor(t.TextMuted)
-						ui.Text(c, p.tr("提交姓名")).Width(64).FontSize(12).TextColor(t.TextMuted)
-						ui.Text(c, p.tr("邮箱")).Grow(1).FontSize(12).TextColor(t.TextMuted)
-						ui.Text(c, p.tr("身份来源")).Width(65).FontSize(12).TextAlign(ui.Center).TextColor(t.TextMuted)
+					columns := p.projectColumns(c)
+					ui.Row(c).Padding(5, 12, 5, 8).Gap(8).AlignItems(ui.Center).Background(t.Background).Radius(4).Children(func() {
+						ui.Text(c, p.tr("仓库")).Width(columns.repo).Shrink(0).FontSize(12).MaxLines(1).Ellipsis("…").TextColor(t.TextMuted)
+						ui.Text(c, p.tr("名字")).Width(columns.name).Shrink(0).FontSize(12).MaxLines(1).Ellipsis("…").TextColor(t.TextMuted)
+						ui.Text(c, p.tr("邮箱")).Grow(1).MinWidth(0).FontSize(12).TextColor(t.TextMuted)
+						ui.Text(c, p.tr("推送")).Width(56).FontSize(12).TextColor(t.TextMuted)
+						ui.Text(c, p.tr("来源")).Width(42).FontSize(12).TextAlign(ui.Center).TextColor(t.TextMuted).Label(p.tr("身份来源")).Tooltip(p.tr("身份来源"))
 					})
 					if len(p.projects) == 0 {
 						ui.Text(c, p.tr("拖入 Git 项目目录，或点击右上角添加")).TextColor(t.TextMuted).Padding(12, 8)
@@ -137,32 +144,7 @@ func (p *application) view(c *ui.Context) {
 					}
 					ui.Scroll(c.Key("projects")).Grow(1).Children(func() {
 						for _, r := range visible {
-							a, source := r.current, p.tr(r.current.source())
-							if r.problem != "" {
-								source = p.tr("不可用")
-							}
-							row := ui.Row(c.Key(r.path)).Height(32).Shrink(0).Padding(0, 12, 0, 8).Gap(10).AlignItems(ui.Center)
-							row.Border(1, t.Surface.Mix(t.Text, 0.08)).BorderWidth(0, 0, 1, 0)
-							if row.Hovered() {
-								row.Background(t.SurfaceHover)
-							}
-							row.Focusable().ContextMenu(p.identityMenu(r.path, r.current, r.problem == "")).Children(func() {
-								ui.Text(c, filepath.Base(r.path)).Width(95).MaxLines(1).Tooltip(p.description(r)).Bold()
-								ui.Text(c, p.displayValue(a.Name)).Width(64).MaxLines(1).Tooltip(a.Name)
-								ui.Text(c, p.displayValue(a.Email)).Grow(1).MinWidth(0).MaxLines(1).FontSize(13).TextColor(t.TextMuted).Tooltip(a.Email)
-								ui.Row(c).Width(65).Justify(ui.Center).Children(func() {
-									ink := ui.RGB(41, 108, 77)
-									if repoScope(a.NameScope) || repoScope(a.EmailScope) {
-										ink = ui.RGB(93, 76, 155)
-									}
-									if t.Dark {
-										ink = ink.Mix(t.Text, 0.63)
-									}
-									ui.Text(c, source).FontSize(12).Padding(1, 9).Radius(4).
-										TextColor(ink).Background(t.Surface.Mix(ink, 0.07)).
-										Border(1, t.Surface.Mix(ink, 0.19))
-								})
-							})
+							p.projectRow(c, r, columns)
 						}
 					})
 				}
@@ -180,8 +162,8 @@ func (p *application) toolbar(c *ui.Context) {
 				ui.Icon(c, globeIcon).Size(16, 16)
 				ui.Text(c, p.tr("全局")).FontSize(13)
 			})
-			ui.Text(c, p.displayValue(a.Name)).Bold().FontSize(15).MaxWidth(112).Shrink(0).MaxLines(1).Ellipsis("…").Tooltip(a.Name)
-			ui.Text(c, p.displayValue(a.Email)).Grow(1).MinWidth(0).FontSize(13).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…").Tooltip(a.Email)
+			ui.Text(c, p.displayValue(a.Name)).Bold().FontSize(15).MaxWidth(112).Shrink(0).MaxLines(1).Ellipsis("…")
+			ui.Text(c, p.displayValue(a.Email)).Grow(1).MinWidth(0).FontSize(13).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…")
 		})
 		ui.Row(c).Shrink(0).Padding(2).Gap(1).Radius(7).Background(t.Background).Children(func() {
 			hint := p.tr("置顶面板")
@@ -203,6 +185,10 @@ func (p *application) identityMenu(path string, current gitIdentity, available b
 		disabled := p.busy || !available
 		local := repoScope(current.NameScope) || repoScope(current.EmailScope)
 		if path != "" {
+			if m.Item(p.tr("项目详情")).Chosen() {
+				p.openProject(path)
+			}
+			m.Separator()
 			if m.Item(p.tr("继承全局")).Radio(!local).Disabled(disabled || !local).Chosen() {
 				p.applyIdentity(path, nil)
 			}
@@ -258,7 +244,7 @@ func (p *application) removeAccount(id int) {
 	}
 	list := slices.Delete(slices.Clone(p.accounts), id, id+1)
 	if err := p.persist(list, p.projects); err != nil {
-		p.notice = err.Error()
+		p.setNotice(err.Error())
 	}
 }
 func (p *application) accountList(c *ui.Context) {
@@ -303,13 +289,18 @@ func (p *application) accountList(c *ui.Context) {
 				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
 					ui.Row(c).Gap(7).AlignItems(ui.Center).Children(func() {
 						ui.Text(c, a.Label).Bold().FontSize(15).MaxWidth(118).MaxLines(1).Ellipsis("…").Tooltip(a.Label)
-						ui.Text(c, p.displayValue(a.Name)).Grow(1).MinWidth(0).MaxLines(1).Ellipsis("…").FontSize(13).TextColor(t.TextMuted).Tooltip(a.Name)
+						ui.Text(c, p.displayValue(a.Name)).Grow(1).MinWidth(0).MaxLines(1).Ellipsis("…").FontSize(13).TextColor(t.TextMuted)
 					})
-					ui.Text(c, p.displayValue(a.Email)).FontSize(13).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…").Tooltip(a.Email)
+					ui.Text(c, p.displayValue(a.Email)).FontSize(13).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…")
 				})
 				tag := ui.Text(c, usage).Shrink(0).FontSize(12).Radius(5).Padding(2, 7).TextColor(t.TextMuted).Background(t.Background)
 				if p.global.matches(a) {
 					tag.TextColor(ink).Background(t.Surface.Mix(ink, 0.08))
+				} else {
+					ui.Button(c, p.tr("设为全局")).Shrink(0).FontSize(12).Padding(4, 8).
+						Label(a.Label + " · " + p.tr("设为全局")).
+						Tooltip(p.tr("设为 Git 全局提交身份，未单独配置身份的项目将使用此账号。")).
+						Disabled(p.busy).OnClick(func() { p.applyIdentity("", &a) })
 				}
 				windowAction(c, ui.ButtonBase(c), moreIcon, a.Label+p.tr("账号操作"), p.tr("账号操作"), false).Menu(menu)
 			})
@@ -332,7 +323,7 @@ func (p *application) accountForm(c *ui.Context) {
 	})
 	ui.Scroll(c.Key("account-fields")).Grow(1).Padding(4, 5).Gap(16).Children(func() {
 		accountField(c, p.tr("账号标签"), p.tr("例如：工作"), &p.draft.Label)
-		accountField(c, p.tr("提交姓名"), "Lin Chen", &p.draft.Name)
+		accountField(c, p.tr("名字"), "Lin Chen", &p.draft.Name)
 		accountField(c, p.tr("邮箱"), "lin@example.org", &p.draft.Email)
 		if p.formError != "" {
 			ui.Text(c, p.formError).TextColor(t.Danger).FontSize(13)
@@ -353,7 +344,7 @@ func accountField(c *ui.Context, label, example string, value *string) {
 func (p *application) saveAccount() {
 	a := identity{strings.TrimSpace(p.draft.Label), strings.TrimSpace(p.draft.Name), strings.TrimSpace(p.draft.Email)}
 	if a.Label == "" || a.Name == "" {
-		p.formError = p.tr("请填写账号标签和提交姓名。")
+		p.formError = p.tr("请填写账号标签和名字。")
 		return
 	}
 	address, err := mail.ParseAddress(a.Email)
@@ -381,16 +372,14 @@ func (p *application) saveAccount() {
 }
 
 func trayIcon() []byte {
-	img := image.NewRGBA(image.Rect(0, 0, 32, 32))
-	for y := 2; y < 30; y++ {
-		for x := 2; x < 30; x++ {
-			ink := color.RGBA{32, 99, 75, 255}
-			if (x >= 8 && x <= 11 && y >= 8 && y <= 24) || (x >= 10 && x <= 23 && y >= 15 && y <= 17) || (x >= 20 && x <= 23 && y >= 8 && y <= 16) {
-				ink = color.RGBA{255, 255, 255, 255}
-			}
-			img.SetRGBA(x, y, ink)
-		}
+	src, err := png.Decode(bytes.NewReader(appIcon))
+	if err != nil {
+		panic(err)
 	}
+	// Downsample the original before handing it to the notification area.
+	// 64 pixels also covers high-DPI taskbars without a large native bitmap.
+	img := image.NewRGBA(image.Rect(0, 0, 64, 64))
+	draw.CatmullRom.Scale(img, img.Bounds(), src, src.Bounds(), draw.Src, nil)
 	var out bytes.Buffer
 	if err := png.Encode(&out, img); err != nil {
 		panic(err)
@@ -474,7 +463,11 @@ func main() {
 			MinWidth: minPanelWidth, MinHeight: minPanelHeight, StateKey: "tray-panel",
 			Hidden: true, Frameless: true, SkipTaskbar: true,
 		})
+		if err := p.win.SetIcon(appIcon); err != nil {
+			log.Fatal("window icon: ", err)
+		}
 		p.updateUI = p.win.Update
+		p.trackPanelSize()
 		guard.watch(func() { p.updateUI(p.show) })
 		if mygo.Updater.Enabled() {
 			p.checkUpdates()
@@ -497,7 +490,10 @@ func main() {
 			defer p.tray.SetMenu(nil)
 			p.tray.PopUpMenu()
 		})
-		mygo.App.OnWillQuit(func(*mygo.QuitEvent) { p.tray.Destroy() })
+		mygo.App.OnWillQuit(func(*mygo.QuitEvent) {
+			p.savePanelSize()
+			p.tray.Destroy()
+		})
 	})
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)
