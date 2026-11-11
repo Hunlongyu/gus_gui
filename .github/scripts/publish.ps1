@@ -55,23 +55,9 @@ if ($ValidateOnly) {
     return
 }
 $notesFile = Join-Path $env:RUNNER_TEMP 'gus-release-notes.md'
-$notes += @"
-
-
-### 下载 / Downloads
-
-| 平台 / Platform | 单文件或应用 / Standalone app | 安装包 / Installer |
-| --- | --- | --- |
-| Windows x64 / ARM64 | ``$slug-$version-windows-<arch>.exe`` | ``$slug-setup-$version-<arch>.exe`` |
-| macOS Intel + Apple Silicon | ``$slug-$version-darwin-universal.tar.gz``（内含 .app） | ``$slug-$version.dmg`` |
-| Linux x64 / ARM64 | ``$slug-$version-linux-<arch>`` | ``${slug}_${version}_<arch>.deb`` |
-
-单文件版无需旁边的资源文件。Linux 下载后需添加执行权限，并安装 GTK 3 和 Git；托盘需要 AppIndicator 支持。macOS 使用完整 .app 包，当前为 ad-hoc 签名，未经过 Apple 公证。所有平台均需要 Git。
-
-Standalone Windows/Linux executables need no resource sidecars. Linux requires executable permission, GTK 3 and Git; tray support additionally needs AppIndicator. macOS requires the complete .app bundle; it is ad-hoc signed, not Apple-notarized. Git is required on every platform.
-
-保留下载文件名的单文件版会引导到发布页下载更新；安装版支持应用内签名更新。/ Standalone downloads keep updates manual; installed apps support signed in-app updates.
-"@
+$downloads = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../release-downloads.md')
+$downloads = $downloads.Replace('{{repository}}', $config.updates.github).Replace('{{version}}', $version).Replace('{{slug}}', $slug)
+$notes = $notes.TrimEnd() + "`n`n" + $downloads.Trim() + "`n"
 Set-Content -LiteralPath $notesFile -Value $notes -Encoding utf8NoBOM
 # A retry can reuse an incomplete draft. Never mutate a published release.
 $releases = gh api --paginate "repos/$env:GITHUB_REPOSITORY/releases" --jq ".[] | select(.tag_name == `"$tag`") | .draft"
