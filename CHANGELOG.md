@@ -1,5 +1,21 @@
 # 更新日志
 
+## 1.5.1
+
+### 简体中文
+
+- “继承”身份来源改用链环图标，表示沿用全局配置。
+- 项目列表的“推送 / Push”列改为“平台 / Platform”，悬浮提示及详情统一使用“托管平台”。
+- 项目详情中的拉取和推送地址相同时只显示一次，地址不同时保留用途标记。
+- 更新中英文使用说明及界面截图。
+
+### English
+
+- Use a chain-link icon for inherited identities to indicate that the project follows the global configuration.
+- Rename the project list's Push column to Platform and use Hosting platforms in tooltips and details.
+- Show identical fetch and push URLs only once in project details, while keeping purpose labels when the URLs differ.
+- Refresh the English and Chinese documentation and interface screenshots.
+
 ## 1.5.0
 
 ### 简体中文
