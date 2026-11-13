@@ -1,5 +1,19 @@
 # 更新日志
 
+## 1.5.2
+
+### 简体中文
+
+- 升级 MyGo 至 0.9.0、Go 构建版本至 1.27.4，并更新图像、系统调用、网络和文本处理依赖。
+- 加载 MyGo 简体中文语言包，完善框架自带控件、对话框和菜单的中文显示。
+- 登记并锁定 MyGo 打包工具及其依赖，确保整理依赖后仍可正常构建跨平台发布包。
+
+### English
+
+- Upgrade MyGo to 0.9.0 and Go builds to 1.27.4, and update image, system, networking and text dependencies.
+- Load MyGo's Simplified Chinese translations for built-in controls, dialogs and menus.
+- Track the MyGo packaging tool and its dependencies so cross-platform release builds continue to work after dependency cleanup.
+
 ## 1.5.1
 
 ### 简体中文

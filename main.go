@@ -3,6 +3,8 @@ package main
 import (
 	_ "embed"
 
+	_ "github.com/egoist/mygo/locales/zh-Hans"
+
 	"gus/internal/app"
 )
 
